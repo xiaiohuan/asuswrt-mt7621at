@@ -487,17 +487,7 @@ obj-$(RTCONFIG_USB_MODEM) += comgt-0.32
 obj-$(RTCONFIG_USB_MODEM) += $(if $(RTCONFIG_QCA),,uqmi)
 endif
 
-ifeq ($(KPATH_3X),y)
-obj-$(RTCONFIG_USB_MODEM) += usb-modeswitch-1.2.3
-else ifeq ($(KPATH_2636_OR_3X),y)
-obj-$(RTCONFIG_USB_MODEM) += $(if $(or $(RTN56UB1),$(RTN56UB2)),usbmodeswitch-1.2.3,usb-modeswitch)
-else
-ifeq ($(RTCONFIG_BCMWL6),y)
 obj-$(RTCONFIG_USB_MODEM) += usb-modeswitch
-else
-obj-$(RTCONFIG_USB_MODEM) += usb-modeswitch-1.2.3
-endif
-endif
 
 # Remove all possible usbmodeswitch from obj-y for 4G-AC55U.
 # We may need to remove usbmodeswitch from obj-y for all LTE router.
@@ -518,7 +508,7 @@ obj-$(RTCONFIG_USB_SMS_MODEM) += smspdu
 obj-y += libdisk
 
 #obj-y += dosfstools
-obj-$(RTCONFIG_FTP) += $(if $(RTCONFIG_QCA),vsftpd-3.x,vsftpd)
+obj-$(RTCONFIG_FTP) += vsftpd-3.x
 
 #obj-$(RTCONFIG_EXT4FS) += e2fsprogs
 
@@ -547,20 +537,7 @@ RTCONFIG_IPV6 :=
 endif
 # install before samba3 for not overwriting some binaries
 obj-$(RTCONFIG_WEBDAV) += samba-3.5.8
-obj-$(NEED_SAMBA2) += samba
-ifeq ($(CONFIG_BCMWL5),y)
-ifneq ($(RTCONFIG_8M_SFP),y)
-obj-$(NEED_SAMBA3) += samba-3.0.33
-else
-obj-$(NEED_SAMBA3) += $(if $(RTCONFIG_SAMBA36X),samba-3.6.x,samba3)
-endif
-else
-ifeq ($(RTCONFIG_QCA),y)
-obj-$(NEED_SAMBA3) += $(if $(RTCONFIG_SAMBA36X),samba-3.6.x_opwrt,samba3)
-else
-obj-$(NEED_SAMBA3) += samba3
-endif
-endif
+obj-$(NEED_SAMBA3) += samba-3.6.x
 
 ifeq ($(RTCONFIG_NTFS),y)
 obj-$(RTCONFIG_OPEN_NTFS3G) += ntfs-3g
