@@ -7,7 +7,6 @@
  * Routines to handle OPTS.
  */
 
-#include <string.h>
 #include "ftpcodes.h"
 #include "ftpcmdio.h"
 #include "session.h"

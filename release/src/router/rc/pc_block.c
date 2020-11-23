@@ -1,9 +1,8 @@
-#include <time.h>
 #include "pc_block.h"
-
 
 // MAC address in list and not in time period -> redirect to blocking page
 void config_blocking_redirect(FILE *fp){
+
 	pc_s *pc_list = NULL, *enabled_list = NULL, *follow_pc;
 	pc_event_s *follow_e;
 	char *lan_if = nvram_safe_get("lan_ifname");
@@ -17,93 +16,84 @@ void config_blocking_redirect(FILE *fp){
 
 	follow_pc = get_all_pc_list(&pc_list);
 	if(follow_pc == NULL){
-		_dprintf("Couldn't get the Parental-control rules correctly!\n");
-		return;
-	}
+                _dprintf("Couldn't get the Parental-control rules correctly!\n");
+                return;
+        }
 
 	follow_pc = match_enabled_pc_list(pc_list, &enabled_list, 1);
-	free_pc_list(&pc_list);
-	if(follow_pc == NULL){
-		_dprintf("Couldn't get the enabled rules of Parental-control correctly!\n");
-		return;
-	}
+        free_pc_list(&pc_list);
+        if(follow_pc == NULL){
+                _dprintf("Couldn't get the enabled rules of Parental-control correctly!\n");
+                return;
+        }
 
 	for(follow_pc = enabled_list; follow_pc != NULL; follow_pc = follow_pc->next){
 		const char *chk_mac = iptables_chk_mac;
-
-#ifdef RTCONFIG_PERMISSION_MANAGEMENT
-		if (!strcmp(follow_pc->mac, "")) continue;
-#endif
+		if(!follow_pc->mac[0])
+			chk_mac = "";
 
 		fprintf(fp, "-A PREROUTING -i %s %s %s -j %s\n", lan_if, chk_mac, follow_pc->mac, fftype);
-
-		for(follow_e = follow_pc->events; follow_e != NULL; follow_e = follow_e->next){
-			if(follow_e->start_day == follow_e->end_day){
-				if(follow_e->start_hour == follow_e->end_hour){ // whole week.
+                for(follow_e = follow_pc->events; follow_e != NULL; follow_e = follow_e->next){
+                        if(follow_e->start_day == follow_e->end_day){
+                                if(follow_e->start_hour == follow_e->end_hour){ // whole week.
 					fprintf(fp, "-A %s -i %s %s %s -j ACCEPT\n", fftype, lan_if, chk_mac, follow_pc->mac);
-				}
-				else{
+                                }
+                                else{
 					fprintf(fp, "-A %s -i %s -m time", fftype, lan_if);
-					if(follow_e->start_hour > 0)
-						fprintf(fp, " --timestart %d:0", follow_e->start_hour);
-					if(follow_e->end_hour < 24)
-						fprintf(fp, " --timestop %d:0", follow_e->end_hour);
+                                        if(follow_e->start_hour > 0)
+                                                fprintf(fp, " --timestart %d:0", follow_e->start_hour);
+                                        if(follow_e->end_hour < 24)
+                                                fprintf(fp, " --timestop %d:0", follow_e->end_hour);
 					fprintf(fp, DAYS_PARAM "%s %s %s -j ACCEPT\n", datestr[follow_e->start_day], chk_mac, follow_pc->mac);
-
-					if(follow_e->start_hour > follow_e->end_hour){
-						fprintf(fp, "-A %s -i %s -m time" DAYS_PARAM, fftype, lan_if);
-						for(i = follow_e->start_day+1; i < follow_e->start_day+7; ++i)
-							fprintf(fp, "%s%s", (i == follow_e->start_day+1)?"":",", datestr[i%7]);
-						fprintf(fp, " %s %s -j ACCEPT\n", chk_mac, follow_pc->mac);
-					}
-				}
-			}
-			else if(follow_e->start_day < follow_e->end_day
-					|| follow_e->end_day == 0
-					){ // start_day < end_day.
-				if(follow_e->end_day == 0)
-					follow_e->end_day += 7;
+                                }
+                        }
+                        else if(follow_e->start_day < follow_e->end_day
+                                        || follow_e->end_day == 0
+                                        ){ // start_day < end_day.
+                                if(follow_e->end_day == 0)
+                                        follow_e->end_day += 7;
 
 				// first interval.
 				fprintf(fp, "-A %s -i %s -m time", fftype, lan_if);
-				if(follow_e->start_hour > 0)
-					fprintf(fp, " --timestart %d:0", follow_e->start_hour);
+                                if(follow_e->start_hour > 0)
+                                        fprintf(fp, " --timestart %d:0", follow_e->start_hour);
 				fprintf(fp, DAYS_PARAM "%s %s %s -j ACCEPT\n", datestr[follow_e->start_day], chk_mac, follow_pc->mac);
 
-				// middle interval.
-				if(follow_e->end_day-follow_e->start_day > 1){
+                                // middle interval.
+                                if(follow_e->end_day-follow_e->start_day > 1){
+
 					fprintf(fp, "-A %s -i %s -m time" DAYS_PARAM, fftype, lan_if);
-					for(i = follow_e->start_day+1; i < follow_e->end_day; ++i)
-						fprintf(fp, "%s%s", (i == follow_e->start_day+1)?"":",", datestr[i]);
+                                        for(i = follow_e->start_day+1; i < follow_e->end_day; ++i)
+                                                fprintf(fp, "%s%s", (i == follow_e->start_day+1)?"":",", datestr[i]);
 					fprintf(fp, " %s %s -j ACCEPT\n", chk_mac, follow_pc->mac);
-				}
+                                }
 
-				// end interval.
-				if(follow_e->end_hour > 0){
-					fprintf(fp, "-A %s -i %s -m time", fftype, lan_if);
+                                // end interval.
+                                if(follow_e->end_hour > 0){
+                                        fprintf(fp, "-A %s -i %s -m time", fftype, lan_if);
 					if(follow_e->end_hour < 24)
-						fprintf(fp, " --timestop %d:0", follow_e->end_hour);
+                                                fprintf(fp, " --timestop %d:0", follow_e->end_hour);
 					fprintf(fp, DAYS_PARAM "%s %s %s -j ACCEPT\n", datestr[follow_e->end_day], chk_mac, follow_pc->mac);
-				}
-			}
-			else
-				; // Don't care "start_day > end_day".
-		}
+                                }
+                        }
+                        else
+                                ; // Don't care "start_day > end_day".
+                }
 
-		// MAC address in list and not in time period -> Redirect to blocking page.
+                // MAC address in list and not in time period -> Redirect to blocking page.
 		fprintf(fp, "-A %s -i %s ! -d %s/%s -p tcp --dport 80 %s %s -j DNAT --to-destination %s:%s\n", fftype, lan_if,lan_ip, lan_mask, chk_mac, follow_pc->mac, lan_ip, DFT_SERV_PORT);
-	}
+        }
 
-	free_pc_list(&enabled_list);
+        free_pc_list(&enabled_list);
 }
 
 void pc_block_exit(int signo){
 	
-	csprintf("pc_block: safeexit");
+	csprintf("pc_block: safeexit");    
 	signal(SIGTERM, SIG_IGN);
 
-	FD_ZERO(&allsets);
-	close(serv_socket);
+	FD_ZERO(&allset);
+	close(serv_socket);                                       
 
 	int i;
 	for(i = 0; i < max_fd; ++i){
@@ -117,8 +107,8 @@ void pc_block_exit(int signo){
 static void close_socket(int sockfd){
 	
 	close(sockfd);
-	FD_CLR(sockfd, &allsets);
-	clients[fd_idx] = -1;
+	FD_CLR(sockfd, &allset);
+	client[fd_idx] = -1;
 }
 
 char *arp_mac(struct in_addr sin_addr){
@@ -213,14 +203,14 @@ void perform_http_serv(int sockfd, char *mac){
 
 int pc_block_main(int argc, char *argv[]){
 
-	char* serv_port;
+	char* serv_port;	
 	int sock_opt;
 	struct timeval tval;
 	struct sockaddr_in sin;
 	struct sockaddr_in client_addr;
 	int client_len;
 	int ready, max_idx, sockfd, nread;
-_dprintf("## pc_block: start ##\n");
+_dprintf("## pc_block: start ##\n");	
 	signal(SIGTERM, pc_block_exit);
 
 	serv_port = DFT_SERV_PORT;
@@ -265,14 +255,14 @@ _dprintf("## pc_block: start ##\n");
 	max_fd = serv_socket;
 	max_idx = -1;
 	client_len = sizeof(client_addr);
-	FD_ZERO(&allsets);
-	FD_SET(serv_socket, &allsets);
+	FD_ZERO(&allset);
+	FD_SET(serv_socket, &allset);
 
 	for(fd_idx=0; fd_idx<MAX_CONN; ++fd_idx)
-		clients[fd_idx] = -1;
+		client[fd_idx] = -1;
 
 	for(;;){
-		rdset = allsets;
+		rdset = allset;
 
 		tval.tv_sec = POLL_INTERVAL_SEC;
 		tval.tv_usec = 0;
@@ -286,8 +276,8 @@ _dprintf("## pc_block: start ##\n");
 			}
 			
 			for(fd_idx=0; fd_idx<MAX_CONN; ++fd_idx){
-				if(clients[fd_idx] < 0){
-					clients[fd_idx] = fd_cur;
+				if(client[fd_idx] < 0){
+					client[fd_idx] = fd_cur;
 					break;
 				}
 			}
@@ -298,7 +288,7 @@ _dprintf("## pc_block: start ##\n");
 				continue;
 			}
 
-			FD_SET(fd_cur, &allsets);
+			FD_SET(fd_cur, &allset);
 			if(fd_cur > max_fd)
 				max_fd = fd_cur;
 			if(fd_idx > max_idx)
@@ -308,7 +298,7 @@ _dprintf("## pc_block: start ##\n");
 		}
 
 		for(fd_idx=0; fd_idx<=max_idx; ++fd_idx){
-			if((sockfd = clients[fd_idx]) < 0)
+			if((sockfd = client[fd_idx]) < 0)
 				continue;
 			if(FD_ISSET(sockfd, &rdset)){
 				ioctl(sockfd, FIONREAD, &nread);

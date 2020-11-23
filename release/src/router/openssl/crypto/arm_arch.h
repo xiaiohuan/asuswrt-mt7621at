@@ -64,7 +64,7 @@
 #  endif
 # endif
 
-# ifndef __ASSEMBLER__
+# if !__ASSEMBLER__
 extern unsigned int OPENSSL_armcap_P;
 # endif
 

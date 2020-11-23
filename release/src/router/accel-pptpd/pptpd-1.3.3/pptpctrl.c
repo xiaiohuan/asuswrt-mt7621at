@@ -560,9 +560,7 @@ static void launch_pppd(char **pppaddrs, struct in_addr *inetaddrs)
 	int an = 0;
 	sigset_t sigs;
 	char tmp[128];
-	char pppInterfaceIPs[33];
 
-	memset(pppInterfaceIPs, 0, 33);
 	pppd_argv[an++] = ppp_binary;
 
 	if (pptpctrl_debug) {
@@ -662,6 +660,7 @@ static void launch_pppd(char **pppaddrs, struct in_addr *inetaddrs)
 	}
 
 	if (*pppaddrs[0] || *pppaddrs[1]) {
+		char pppInterfaceIPs[33];
 		sprintf(pppInterfaceIPs, "%s:%s", pppaddrs[0], pppaddrs[1]);
 		pppd_argv[an++] = pppInterfaceIPs;
 	}

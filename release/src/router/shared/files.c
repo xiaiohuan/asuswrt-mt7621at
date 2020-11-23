@@ -5,6 +5,8 @@
 
 */
 
+#define _BSD_SOURCE
+
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,7 +22,6 @@
 #include "shutils.h"
 #include "shared.h"
 
-unsigned int __dir_size__ = 0;
 
 int f_exists(const char *path)	// note: anything but a directory
 {
@@ -39,26 +40,6 @@ unsigned long f_size(const char *path)	// 4GB-1	-1 = error
 	struct stat st;
 	if (stat(path, &st) == 0) return st.st_size;
 	return (unsigned long)-1;
-}
-
-// callback function for ftw() in d_size() to calculate size of a directory, in bytes.
-int sum(const char *fpath, const struct stat *sb, int typeflag)
-{
-	__dir_size__ += sb->st_size;
-	return 0;
-}
-
-int d_size(const char *dirPath)
-{
-	__dir_size__ = 0;
-
-	if (ftw(dirPath, &sum, 1))
-	{
-		cprintf("ftw error!\n");
-		return -1;
-	}
-
-	return __dir_size__;
 }
 
 int f_read_excl(const char *path, void *buffer, int max)
@@ -305,7 +286,7 @@ int check_if_dir_writable(const char *dir)
  * maybe need different lock kind? */
 #define LET_FD_LEAK
 
-int _file_lock(const char *dir, const char *tag)
+int file_lock(const char *tag)
 {
 	struct flock lock;
 	char path[64];
@@ -317,7 +298,7 @@ int _file_lock(const char *dir, const char *tag)
 	struct stat st;
 #endif
 
-	snprintf(path, sizeof(path), "%s/%s.lock", dir, tag);
+	snprintf(path, sizeof(path), "/var/lock/%s.lock", tag);
 
 #ifndef LET_FD_LEAK
 	pid = getpid();
@@ -389,24 +370,14 @@ error:
 	return -1;
 }
 
-int file_lock(const char *tag)
-{
-	return _file_lock("/var/lock", tag);
-}
-
-int _file_unlock(int lockfd)
+void file_unlock(int lockfd)
 {
 	if (lockfd < 0) {
 		errno = EBADF;
-		return -1;
+		syslog(LOG_DEBUG, "Error unlocking %d: %d %s", lockfd, errno, strerror(errno));
+		return;
 	}
 
 	ftruncate(lockfd, 0);
-	return close(lockfd);
-}
-
-void file_unlock(int lockfd)
-{
-	if (_file_unlock(lockfd) < 0)
-		syslog(LOG_DEBUG, "Error unlocking %d: %d %s", lockfd, errno, strerror(errno));
+	close(lockfd);
 }

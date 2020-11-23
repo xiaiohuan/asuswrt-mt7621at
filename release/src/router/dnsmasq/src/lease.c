@@ -669,8 +669,7 @@ struct dhcp_lease *lease_find_by_addr(struct in_addr addr)
 #ifdef HAVE_DHCP6
 /* find address for {CLID, IAID, address} */
 struct dhcp_lease *lease6_find(unsigned char *clid, int clid_len, 
-			       int lease_type, unsigned int iaid,
-			       struct in6_addr *addr)
+			       int lease_type, int iaid, struct in6_addr *addr)
 {
   struct dhcp_lease *lease;
   
@@ -702,9 +701,7 @@ void lease6_reset(void)
 }
 
 /* enumerate all leases belonging to {CLID, IAID} */
-struct dhcp_lease *lease6_find_by_client(struct dhcp_lease *first, int lease_type,
-					 unsigned char *clid, int clid_len,
-					 unsigned int iaid)
+struct dhcp_lease *lease6_find_by_client(struct dhcp_lease *first, int lease_type, unsigned char *clid, int clid_len, int iaid)
 {
   struct dhcp_lease *lease;
 
@@ -886,7 +883,7 @@ void lease_set_expires(struct dhcp_lease *lease, unsigned int len, time_t now)
 } 
 
 #ifdef HAVE_DHCP6
-void lease_set_iaid(struct dhcp_lease *lease, unsigned int iaid)
+void lease_set_iaid(struct dhcp_lease *lease, int iaid)
 {
   if (lease->iaid != iaid)
     {
@@ -986,7 +983,7 @@ void lease_set_hostname(struct dhcp_lease *lease, const char *name, int auth, ch
   char *new_name = NULL, *new_fqdn = NULL;
 
   if (config_domain && (!domain || !hostname_isequal(domain, config_domain)))
-    my_syslog(MS_DHCP | LOG_INFO, _("Ignoring domain %s for DHCP host name %s"), config_domain, name);
+    my_syslog(MS_DHCP | LOG_WARNING, _("Ignoring domain %s for DHCP host name %s"), config_domain, name);
   
   if (lease->hostname && name && hostname_isequal(lease->hostname, name))
     {

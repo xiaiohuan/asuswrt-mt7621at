@@ -166,8 +166,6 @@ struct myoption {
 #define LOPT_UBUS          354
 #define LOPT_NAME_MATCH    355
 #define LOPT_CAA           356
-#define LOPT_SHARED_NET    357
-#define LOPT_IGNORE_CLID   358
  
 #ifdef HAVE_GETOPT_LONG
 static const struct option opts[] =  
@@ -261,7 +259,6 @@ static const struct myoption opts[] =
     { "ptr-record", 1, 0, LOPT_PTR },
     { "naptr-record", 1, 0, LOPT_NAPTR },
     { "bridge-interface", 1, 0 , LOPT_BRIDGE },
-    { "shared-network", 1, 0, LOPT_SHARED_NET },
     { "dhcp-option-force", 1, 0, LOPT_FORCE },
     { "tftp-no-blocksize", 0, 0, LOPT_NOBLOCK },
     { "log-dhcp", 0, 0, LOPT_LOG_OPTS },
@@ -340,7 +337,6 @@ static const struct myoption opts[] =
     { "dhcp-rapid-commit", 0, 0, LOPT_RAPID_COMMIT },
     { "dumpfile", 1, 0, LOPT_DUMPFILE },
     { "dumpmask", 1, 0, LOPT_DUMPMASK },
-    { "dhcp-ignore-clid", 0, 0,  LOPT_IGNORE_CLID },
     { NULL, 0, 0, 0 }
   };
 
@@ -435,7 +431,6 @@ static struct {
   { '3', ARG_DUP, "[=tag:<tag>]...", gettext_noop("Enable dynamic address allocation for bootp."), NULL },
   { '4', ARG_DUP, "set:<tag>,<mac address>", gettext_noop("Map MAC address (with wildcards) to option set."), NULL },
   { LOPT_BRIDGE, ARG_DUP, "<iface>,<alias>..", gettext_noop("Treat DHCP requests on aliases as arriving from interface."), NULL },
-  { LOPT_SHARED_NET, ARG_DUP, "<iface>|<addr>,<addr>", gettext_noop("Specify extra networks sharing a broadcast domain for DHCP"), NULL},
   { '5', OPT_NO_PING, NULL, gettext_noop("Disable ICMP echo address checking in the DHCP server."), NULL },
   { '6', ARG_ONE, "<path>", gettext_noop("Shell script to run on DHCP lease creation and destruction."), NULL },
   { LOPT_LUASCRIPT, ARG_DUP, "path", gettext_noop("Lua script to run on DHCP lease creation and destruction."), NULL },
@@ -483,7 +478,6 @@ static struct {
   { LOPT_CPE_ID, ARG_ONE, "<text>", gettext_noop("Add client identification to forwarded DNS queries."), NULL },
   { LOPT_DNSSEC, OPT_DNSSEC_PROXY, NULL, gettext_noop("Proxy DNSSEC validation results from upstream nameservers."), NULL },
   { LOPT_INCR_ADDR, OPT_CONSEC_ADDR, NULL, gettext_noop("Attempt to allocate sequential IP addresses to DHCP clients."), NULL },
-  { LOPT_IGNORE_CLID, OPT_IGNORE_CLID, NULL, gettext_noop("Ignore client identifier option sent by DHCP clients."), NULL },
   { LOPT_CONNTRACK, OPT_CONNTRACK, NULL, gettext_noop("Copy connection-track mark from queries to upstream connections."), NULL },
   { LOPT_FQDN, OPT_FQDN_UPDATE, NULL, gettext_noop("Allow DHCP clients to do their own DDNS updates."), NULL },
   { LOPT_RA, OPT_RA, NULL, gettext_noop("Send router-advertisements for interfaces doing DHCPv6"), NULL },
@@ -2695,14 +2689,6 @@ static int one_opt(int option, char *arg, char *errstr, char *gen_err, int comma
 	    
 	    if (size < 0)
 	      size = 0;
-
-	    /* Note that for very large cache sizes, the malloc()
-	       will overflow. For the size of the cache record
-	       at the time this was noted, the value of "very large"
-               was 46684428. Limit to an order of magnitude less than
-	       that to be safe from changes to the cache record. */
-	    if (size > 5000000)
-	      size = 5000000;
 	    
 	    daemon->cachesize = size;
 	  }
@@ -2889,44 +2875,6 @@ static int one_opt(int option, char *arg, char *errstr, char *gen_err, int comma
       }
 
 #ifdef HAVE_DHCP
-    case LOPT_SHARED_NET: /* --shared-network */
-      {
-	struct shared_network *new = opt_malloc(sizeof(struct shared_network));
-
-#ifdef HAVE_DHCP6
-	new->shared_addr.s_addr = 0;
-#endif
-	new->if_index = 0;
-	
-	if (!(comma = split(arg)))
-	  {
-	  snerr:
-	    free(new);
-	    ret_err(_("bad shared-network"));
-	  }
-	
-	if (inet_pton(AF_INET, comma, &new->shared_addr))
-	  {
-	    if (!inet_pton(AF_INET, arg, &new->match_addr) &&
-		!(new->if_index = if_nametoindex(arg)))
-	      goto snerr;
-	  }
-#ifdef HAVE_DHCP6
-	else if (inet_pton(AF_INET6, comma, &new->shared_addr6))
-	  {
-	    if (!inet_pton(AF_INET6, arg, &new->match_addr6) &&
-		!(new->if_index = if_nametoindex(arg)))
-	      goto snerr;
-	  }
-#endif
-	else
-	  goto snerr;
-
-	new->next = daemon->shared_networks;
-	daemon->shared_networks = new;
-	break;
-      }
-	  
     case 'F':  /* --dhcp-range */
       {
 	int k, leasepos = 2;
@@ -4323,7 +4271,6 @@ err:
 	new = opt_malloc(sizeof(struct host_record));
 	memset(new, 0, sizeof(struct host_record));
 	new->ttl = -1;
-	new->flags = 0;
 
 	while (arg)
 	  {
@@ -4336,15 +4283,9 @@ err:
 	    if (*dig == 0)
 	      new->ttl = atoi(arg);
 	    else if (inet_pton(AF_INET, arg, &addr.addr4))
-	      {
-		new->addr = addr.addr4;
-		new->flags |= HR_4;
-	      }
+	      new->addr = addr.addr4;
 	    else if (inet_pton(AF_INET6, arg, &addr.addr6))
-	      {
-		new->addr6 = addr.addr6;
-		new->flags |= HR_6;
-	      }
+	      new->addr6 = addr.addr6;
 	    else
 	      {
 		int nomem;
@@ -5032,14 +4973,9 @@ void read_opts(int argc, char **argv, char *compile_opts)
         }
       else if (option == 'C')
 	{
-          if (!conffile)
-	    conffile = opt_string_alloc(arg);
-	  else
-	    {
-	      char *extra = opt_string_alloc(arg);
-	      one_file(extra, 0);
-	      free(extra);
-	    }
+          if (conffile)
+            free(conffile);
+	  conffile = opt_string_alloc(arg);
 	}
       else
 	{
@@ -5092,7 +5028,7 @@ void read_opts(int argc, char **argv, char *compile_opts)
 #define NOLOOP 1
 #define TESTLOOP 2      
 
-      /* Fill in TTL for CNAMES now we have local_ttl.
+      /* Fill in TTL for CNAMES noe we have local_ttl.
 	 Also prepare to do loop detection. */
       for (cn = daemon->cnames; cn; cn = cn->next)
 	{

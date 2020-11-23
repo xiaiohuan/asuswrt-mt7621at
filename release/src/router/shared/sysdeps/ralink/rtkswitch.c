@@ -65,7 +65,6 @@ int rtkswitch_ioctl(int val, int val2)
 	case 23:
 	case 24:
 	case 25:
-	case 35:
 	case 36:	/* Set Vlan VID. */
 	case 37:	/* Set Vlan PRIO. */
 	case 38:	/* Initialize VLAN. Cherry Cho added in 2011/7/15. */
@@ -75,10 +74,6 @@ int rtkswitch_ioctl(int val, int val2)
 	case 100:
 	case 109:	/* Set specific ext port txDelay */
 	case 110:	/* Set specific ext port rxDelay */
-#if 0	/* Just for factory verify hardware. */
-	case 502:	/* Set Phy Test mode. */
-	case 503:	/* Get Phy Test mode. */
-#endif
 		p = &value;
 		value = (unsigned int)val2;
 		break;
@@ -106,7 +101,6 @@ int rtkswitch_ioctl(int val, int val2)
 		break;
 	case 42:
 	case 43:
-	case 44:
 		p = (int*) &portTraffic;
 		break;
 
@@ -129,7 +123,7 @@ int rtkswitch_ioctl(int val, int val2)
 
 	if (val == 0 || val == 3)
 		printf("return: %x\n", value);
-	else if(val == 42 || val == 43 || val == 44)
+	else if(val == 42 || val == 43)
 		printf("rx/tx: %lld/%lld\n", portTraffic.rxByteCount, portTraffic.txByteCount);
 
 	close(fd);
@@ -432,69 +426,6 @@ int rtkswitch_AllPort_phyState(void)
 
 	return 0;
 }
-
-//sherry fix rt-ac53 bug#5 traffic incorrect when hwnat enable{
-int get_realtek_wan_bytecount(unsigned long *tx, unsigned long *rx)
-{
-	int fd;
-	int *p = NULL;
-	struct trafficCount_t portTraffic;
-
-	fd = open(RTKSWITCH_DEV, O_RDONLY);
-	if (fd < 0) {
-		perror(RTKSWITCH_DEV);
-		return -1;
-	}
-
-	p = (int*) &portTraffic;
-
-	if (ioctl(fd, 43, p) < 0) {
-		perror("rtkswitch ioctl");
-		close(fd);
-		return -1;
-	}
-	
-	//_dprintf("rx/tx: %lld/%lld\n", portTraffic.rxByteCount, portTraffic.txByteCount);
-	
-	*rx = portTraffic.rxByteCount;
-	*tx = portTraffic.txByteCount;
-
-	close(fd);
-	return 0;
-
-}
-
-int get_realtek_lans_bytecount(unsigned long *tx, unsigned long *rx)
-{
-	int fd;
-	int *p = NULL;
-	struct trafficCount_t portTraffic;
-
-	fd = open(RTKSWITCH_DEV, O_RDONLY);
-	if (fd < 0) {
-		perror(RTKSWITCH_DEV);
-		return -1;
-	}
-
-	p = (int*) &portTraffic;
-
-	if (ioctl(fd, 44, p) < 0) {
-		perror("rtkswitch ioctl");
-		close(fd);
-		return -1;
-	}
-	
-	//_dprintf("rx/tx: %lld/%lld\n", portTraffic.rxByteCount, portTraffic.txByteCount);
-	
-	*rx = portTraffic.rxByteCount;
-	*tx = portTraffic.txByteCount;
-
-	close(fd);
-	return 0;
-
-}
-//end sherry}
-
 
 #if 0
 void usage(char *cmd)

@@ -29,88 +29,14 @@ install: all
 	-rm -rf $(TARGETDIR)/ra_SKU
 	-rm -rf $(SKUDIR)
 	@install -d $(SKUDIR)
-ifeq ($(RA_SKU_IN_DRV),y)
-ifneq ($(SKU_2G_FCC),)
-	@install DUMMY_SKU $(SKUDIR)/SingleSKU_FCC.dat
-endif
-ifneq ($(SKU_5G_FCC),)
-	@install DUMMY_SKU $(SKUDIR)/SingleSKU_5G_FCC.dat
-endif
-ifneq ($(SKU_2G_IC),)
-	@install DUMMY_SKU $(SKUDIR)/SingleSKU_IC.dat
-endif
-ifneq ($(SKU_5G_IC),)
-	@install DUMMY_SKU $(SKUDIR)/SingleSKU_5G_IC.dat
-endif
-ifneq ($(SKU_2G_CE),)
-	@install DUMMY_SKU  $(SKUDIR)/SingleSKU_CE.dat
-endif
-ifneq ($(SKU_5G_CE),)
-	@install DUMMY_SKU  $(SKUDIR)/SingleSKU_5G_CE.dat
-endif
-ifneq ($(SKU_2G_SG),)
-	@install DUMMY_SKU $(SKUDIR)/SingleSKU_SG.dat
-endif
-ifneq ($(SKU_5G_SG),)
-	@install DUMMY_SKU $(SKUDIR)/SingleSKU_5G_SG.dat
-endif
-ifneq ($(SKU_2G_AU),)
-	@install DUMMY_SKU $(SKUDIR)/SingleSKU_AU.dat
-endif
-ifneq ($(SKU_5G_AU),)
-	@install DUMMY_SKU $(SKUDIR)/SingleSKU_5G_AU.dat
-endif
-ifneq ($(SKU_2G_NCC),)
-	@install DUMMY_SKU $(SKUDIR)/SingleSKU_NCC.dat
-endif
-ifneq ($(SKU_5G_NCC),)
-	@install DUMMY_SKU $(SKUDIR)/SingleSKU_5G_NCC.dat
-endif
-ifneq ($(SKU_2G_JP),)
-	@install DUMMY_SKU $(SKUDIR)/SingleSKU_JP.dat
-endif
-ifneq ($(SKU_5G_JP),)
-	@install DUMMY_SKU $(SKUDIR)/SingleSKU_5G_JP.dat
-endif
-ifneq ($(SKU_2G_CN),)
-	@install DUMMY_SKU $(SKUDIR)/SingleSKU_CN.dat
-endif
-ifneq ($(SKU_5G_CN),)
-	@install DUMMY_SKU $(SKUDIR)/SingleSKU_5G_CN.dat
-endif
-ifneq ($(SKU_2G_AP),)
-	@install DUMMY_SKU $(SKUDIR)/SingleSKU_AP.dat
-endif
-ifneq ($(SKU_5G_AP),)
-	@install DUMMY_SKU $(SKUDIR)/SingleSKU_5G_AP.dat
-endif
-ifneq ($(SKU_2G_EAC),)
-	install DUMMY_SKU $(SKUDIR)/SingleSKU_EAC.dat
-endif
-ifneq ($(SKU_5G_EAC),)
-	install DUMMY_SKU $(SKUDIR)/SingleSKU_5G_EAC.dat
-endif
-else	#RA_SKU==y
-ifneq ($(SKU_2G_EAC),)
-	install DUMMY_SKU $(SKUDIR)/SingleSKU_EAC.dat
-endif
-ifneq ($(SKU_5G_EAC),)
-	install DUMMY_SKU $(SKUDIR)/SingleSKU_5G_EAC.dat
-endif
 ifneq ($(SKU_2G_FCC),)
 	@install $(BUILD_NAME)/$(SKU_2G_FCC) $(SKUDIR)/SingleSKU_FCC.dat
 endif
-ifneq ($(SKU_5G_FCC),)
-	@install $(BUILD_NAME)/$(SKU_5G_FCC) $(SKUDIR)/SingleSKU_5G_FCC.dat
-endif
-ifneq ($(SKU_2G_IC),)
-	@install $(BUILD_NAME)/$(SKU_2G_IC) $(SKUDIR)/SingleSKU_IC.dat
-endif
-ifneq ($(SKU_5G_IC),)
-	@install $(BUILD_NAME)/$(SKU_5G_IC) $(SKUDIR)/SingleSKU_5G_IC.dat
-endif
 ifneq ($(SKU_2G_CE),)
 	@install $(BUILD_NAME)/$(SKU_2G_CE)  $(SKUDIR)/SingleSKU_CE.dat
+endif
+ifneq ($(SKU_5G_FCC),)
+	@install $(BUILD_NAME)/$(SKU_5G_FCC) $(SKUDIR)/SingleSKU_5G_FCC.dat
 endif
 ifneq ($(SKU_5G_CE),)
 	@install $(BUILD_NAME)/$(SKU_5G_CE)  $(SKUDIR)/SingleSKU_5G_CE.dat
@@ -157,12 +83,6 @@ endif
 ifneq ($(SKU_5G_IC),)
 	@install $(BUILD_NAME)/$(SKU_5G_IC) $(SKUDIR)/SingleSKU_5G_IC.dat
 endif
-ifneq ($(SKU_2G_AP),)
-	@install $(BUILD_NAME)/$(SKU_2G_AP) $(SKUDIR)/SingleSKU_AP.dat
-endif
-ifneq ($(SKU_5G_AP),)
-	@install $(BUILD_NAME)/$(SKU_5G_AP) $(SKUDIR)/SingleSKU_5G_AP.dat
-endif
 
 ifeq ("$(BUILD_NAME)","RT-AC52U")
 	@install $(BUILD_NAME)/$(SKU_2G_FCC_V2) $(SKUDIR)/SingleSKU_FCC_0002.dat
@@ -170,8 +90,6 @@ ifeq ("$(BUILD_NAME)","RT-AC52U")
 	@install $(BUILD_NAME)/$(SKU_2G_CE_V2) $(SKUDIR)/SingleSKU_CE_0002.dat
 	@install $(BUILD_NAME)/$(SKU_5G_CE_V2) $(SKUDIR)/SingleSKU_5G_CE_0002.dat
 endif
-
-endif	#RA_SKU_IN_DRV == y
 
 
 

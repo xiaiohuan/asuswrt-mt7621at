@@ -15,16 +15,11 @@
 
 include ../.config
 CFLAGS  += -I. -I$(TOP)/shared  -I$(SRCBASE)/include -Wall
-CFLAGS += $(PRIVATE_EXTRACFLAGS)
 ifeq ($(RTCONFIG_BCMWL6),y)
 CFLAGS  += -I$(SRCBASE)/shared/bcmwifi/include
 endif
 CFLAGS  += -Dlinux -DNO_PARALLEL -DPRNINFO
-LDFLAGS = -L$(TOP)/shared -lshared -L$(TOP)/nvram${BCMEX}$(EX7) -lnvram 
-ifeq ($(HND_ROUTER),y)
-LDFLAGS += -L$(TOP)/wlcsm -lwlcsm
-endif
-
+LDFLAGS = -L$(TOP)/shared -lshared -L$(TOP)/nvram${BCMEX} -lnvram 
 ifeq ($(RTCONFIG_BCMARM),y)
 CFLAGS += -I$(SRCBASE)/common/include
 LDFLAGS += -lgcc_s

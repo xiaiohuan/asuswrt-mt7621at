@@ -316,16 +316,16 @@ function set_ISP_profile(){
                 document.form.switch_wan0prio.value = "0";
                 document.form.switch_wan1tagid.value = "600";
                 document.form.switch_wan1prio.value = "0";
-                document.form.switch_wan2tagid.value = "";
+                document.form.switch_wan2tagid.value = "0";
                 document.form.switch_wan2prio.value = "0";
         }
         else if(document.form.switch_wantag.value == "unifi_biz") {
 		document.form.switch_stb_x.value = "0";
                 document.form.switch_wan0tagid.value = "500";
                 document.form.switch_wan0prio.value = "0";
-                document.form.switch_wan1tagid.value = "";
+                document.form.switch_wan1tagid.value = "0";
                 document.form.switch_wan1prio.value = "0";
-                document.form.switch_wan2tagid.value = "";
+                document.form.switch_wan2tagid.value = "0";
                 document.form.switch_wan2prio.value = "0";
         }
         else if(document.form.switch_wantag.value == "singtel_mio") {
@@ -343,14 +343,14 @@ function set_ISP_profile(){
                 document.form.switch_wan0prio.value = "0";
                 document.form.switch_wan1tagid.value = "20";
                 document.form.switch_wan1prio.value = "4";
-                document.form.switch_wan2tagid.value = "";
+                document.form.switch_wan2tagid.value = "0";
                 document.form.switch_wan2prio.value = "0";
         }
         else if(document.form.switch_wantag.value == "m1_fiber") {
                 document.form.switch_stb_x.value = "3";
                 document.form.switch_wan0tagid.value = "1103";
                 document.form.switch_wan0prio.value = "1";
-                document.form.switch_wan1tagid.value = "";
+                document.form.switch_wan1tagid.value = "0";
                 document.form.switch_wan1prio.value = "0";
                 document.form.switch_wan2tagid.value = "1107";
                 document.form.switch_wan2prio.value = "1";
@@ -359,7 +359,7 @@ function set_ISP_profile(){
                 document.form.switch_stb_x.value = "3";
                 document.form.switch_wan0tagid.value = "621";
                 document.form.switch_wan0prio.value = "0";
-                document.form.switch_wan1tagid.value = "";
+                document.form.switch_wan1tagid.value = "0";
                 document.form.switch_wan1prio.value = "0";
                 document.form.switch_wan2tagid.value = "821";
                 document.form.switch_wan2prio.value = "0";
@@ -368,7 +368,7 @@ function set_ISP_profile(){
                 document.form.switch_stb_x.value = "3";
                 document.form.switch_wan0tagid.value = "11";
                 document.form.switch_wan0prio.value = "0";
-                document.form.switch_wan1tagid.value = "";
+                document.form.switch_wan1tagid.value = "0";
                 document.form.switch_wan1prio.value = "0";
                 document.form.switch_wan2tagid.value = "14";
                 document.form.switch_wan2prio.value = "0";
@@ -433,7 +433,7 @@ body{
 </style>
 <div>
 	<div style="font-size:1em;padding:10px 0 10px 15px;text-align:left;"><#PPPConnection_UserName_sectionname#></div>
-	<div style="font-size:1em;color:#B8D8FF;margin-left:15px;"><#Username#></div>
+	<div style="font-size:1em;color:#B8D8FF;margin-left:15px;"><#PPPConnection_UserName_itemname#></div>
 	<div style="margin:10px 15px 10px 15px">
 		<input type="text" name="wan_pppoe_username" maxlength="64" value="" tabindex="1" style="width:100%;height:30px;padding-left:9px;font-size:0.9em;color:#9BA7B1;background-color:rgba(28,28,28,1);border:1px solid #43474B" onkeypress="return validator.isString(this, event);" size="36" autocapitalize="off" autocomplete="off"/>
 	</div>

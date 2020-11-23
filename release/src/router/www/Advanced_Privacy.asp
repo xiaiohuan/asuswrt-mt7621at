@@ -54,7 +54,7 @@ function initial(){
 
 	url = "https://www.trendmicro.com/en_us/about/legal/privacy-policy-product.html"
 	$("#tm_eula_url").attr("href",url);
-	url = "https://esupport.trendmicro.com/en-us/home/pages/technical-support/1120473.aspx";
+	url = "https://success.trendmicro.com/data-collection-disclosure";
 	$("#tm_disclosure_url").attr("href",url);
 
 	if(eula_status.ASUS_EULA == "1"){
@@ -202,7 +202,7 @@ function withdraw_eula(eula_type){
 								<td bgcolor="#4D595D" valign="top">
 									<div>&nbsp;</div>
 									<div id="formfonttitle" class="formfonttitle"><#menu5_6#> - <#ASUS_Notice_Privacy#></div>
-									<div style="margin:10px 0 10px 5px;"><img src="/images/New_ui/export/line_export.png"></div>
+									<div style="margin:10px 0 10px 5px;" class="splitLine"></div>
 									<div id="privacy_desc" style="font-size:14px; margin: 20px 10px auto 10px; display:none;"><#ASUS_privacy_desc#></div>
 									<div id="asus_eula" class="eula_withdraw" style="display:none;">
 										<div class="eula_withdraw_title" id="asus_eula_title"><#ASUS_eula_withdraw0_AlexaIFTTT#></div>

@@ -1,6 +1,6 @@
 /**
  * Copyright (C) 2012-2014 Steven Barth <steven@midlink.org>
- * Copyright (C) 2017-2018 Hans Dedecker <dedeckeh@gmail.com>
+ * Copyright (C) 2017 Hans Dedecker <dedeckeh@gmail.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License v2 as published by
@@ -13,7 +13,6 @@
  *
  */
 
-#include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <signal.h>
@@ -58,10 +57,6 @@ static volatile int rs_attempt = 0;
 static struct in6_addr lladdr = IN6ADDR_ANY_INIT;
 static unsigned int ra_options = 0;
 static unsigned int ra_holdoff_interval = 0;
-static int ra_hoplimit = 0;
-static int ra_mtu = 0;
-static int ra_reachable = 0;
-static int ra_retransmit = 0;
 
 struct {
 	struct icmp6_hdr hdr;
@@ -87,11 +82,11 @@ int ra_init(const char *ifname, const struct in6_addr *ifid,
 	sock = fflags(sock, O_CLOEXEC);
 #endif
 	if (sock < 0)
-		goto failure;
+		return -1;
 
 	if_index = if_nametoindex(ifname);
 	if (!if_index)
-		goto failure;
+		return -1;
 
 	strncpy(if_name, ifname, sizeof(if_name) - 1);
 	lladdr = *ifid;
@@ -103,21 +98,16 @@ int ra_init(const char *ifname, const struct in6_addr *ifid,
 	rtnl = fflags(rtnl, O_CLOEXEC);
 #endif
 	if (rtnl < 0)
-		goto failure;
+		return -1;
 
 	struct sockaddr_nl rtnl_kernel = { .nl_family = AF_NETLINK };
 	if (connect(rtnl, (const struct sockaddr*)&rtnl_kernel, sizeof(rtnl_kernel)) < 0)
-		goto failure;
+		return -1;
 
 	int val = RTNLGRP_LINK;
-	if (setsockopt(rtnl, SOL_NETLINK, NETLINK_ADD_MEMBERSHIP, &val, sizeof(val)) < 0)
-		goto failure;
-
-	if (fcntl(rtnl, F_SETOWN, ourpid) < 0)
-		goto failure;
-
-	if (fcntl(rtnl, F_SETFL, fcntl(sock, F_GETFL) | O_ASYNC) < 0)
-		goto failure;
+	setsockopt(rtnl, SOL_NETLINK, NETLINK_ADD_MEMBERSHIP, &val, sizeof(val));
+	fcntl(rtnl, F_SETOWN, ourpid);
+	fcntl(rtnl, F_SETFL, fcntl(sock, F_GETFL) | O_ASYNC);
 
 	struct {
 		struct nlmsghdr hdr;
@@ -126,67 +116,43 @@ int ra_init(const char *ifname, const struct in6_addr *ifid,
 		.hdr = {sizeof(req), RTM_GETLINK, NLM_F_REQUEST, 1, 0},
 		.ifi = {.ifi_index = if_index}
 	};
-	if (send(rtnl, &req, sizeof(req), 0) < 0)
-		goto failure;
-
+	send(rtnl, &req, sizeof(req), 0);
 	ra_link_up();
 
 	// Filter ICMPv6 package types
 	struct icmp6_filter filt;
 	ICMP6_FILTER_SETBLOCKALL(&filt);
 	ICMP6_FILTER_SETPASS(ND_ROUTER_ADVERT, &filt);
-	if (setsockopt(sock, IPPROTO_ICMPV6, ICMP6_FILTER, &filt, sizeof(filt)) < 0)
-		goto failure;
+	setsockopt(sock, IPPROTO_ICMPV6, ICMP6_FILTER, &filt, sizeof(filt));
 
 	// Bind to all-nodes
 	struct ipv6_mreq an = {ALL_IPV6_NODES, if_index};
-	if (setsockopt(sock, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP, &an, sizeof(an)) < 0)
-		goto failure;
+	setsockopt(sock, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP, &an, sizeof(an));
 
 	// Let the kernel compute our checksums
 	val = 2;
-	if (setsockopt(sock, IPPROTO_RAW, IPV6_CHECKSUM, &val, sizeof(val)) < 0)
-		goto failure;
+	setsockopt(sock, IPPROTO_RAW, IPV6_CHECKSUM, &val, sizeof(val));
 
 	// This is required by RFC 4861
 	val = 255;
-	if (setsockopt(sock, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, &val, sizeof(val)) < 0)
-		goto failure;
+	setsockopt(sock, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, &val, sizeof(val));
 
 	// Receive multicast hops
 	val = 1;
-	if (setsockopt(sock, IPPROTO_IPV6, IPV6_RECVHOPLIMIT, &val, sizeof(val)) < 0)
-		goto failure;
+	setsockopt(sock, IPPROTO_IPV6, IPV6_RECVHOPLIMIT, &val, sizeof(val));
 
 	// Bind to one device
-	if (setsockopt(sock, SOL_SOCKET, SO_BINDTODEVICE, ifname, strlen(ifname)) < 0)
-		goto failure;
+	setsockopt(sock, SOL_SOCKET, SO_BINDTODEVICE, ifname, strlen(ifname));
 
 	// Add async-mode
-	if (fcntl(sock, F_SETOWN, ourpid) < 0)
-		goto failure;
-
-	val = fcntl(sock, F_GETFL);
-	if (val < 0)
-		goto failure;
-
-	if (fcntl(sock, F_SETFL, val | O_ASYNC) < 0)
-		goto failure;
+	fcntl(sock, F_SETOWN, ourpid);
+	fcntl(sock, F_SETFL, fcntl(sock, F_GETFL) | O_ASYNC);
 
 	// Send RS
 	signal(SIGALRM, ra_send_rs);
 	ra_send_rs(SIGALRM);
 
 	return 0;
-
-failure:
-	if (sock >= 0)
-		close(sock);
-
-	if (rtnl >= 0)
-		close(rtnl);
-
-	return -1;
 }
 
 static void ra_send_rs(int signal __attribute__((unused)))
@@ -200,8 +166,7 @@ static void ra_send_rs(int signal __attribute__((unused)))
 	else
 		len = sizeof(struct icmp6_hdr);
 
-	if (sendto(sock, &rs, len, MSG_DONTWAIT, (struct sockaddr*)&dest, sizeof(dest)) < 0)
-		syslog(LOG_ERR, "Failed to send RS (%s)",  strerror(errno));
+	sendto(sock, &rs, len, MSG_DONTWAIT, (struct sockaddr*)&dest, sizeof(dest));
 
 	if (++rs_attempt <= 3)
 		alarm(4);
@@ -286,64 +251,44 @@ static bool ra_icmpv6_valid(struct sockaddr_in6 *source, int hlim, uint8_t *data
 	return opt == end;
 }
 
-static bool ra_set_hoplimit(int val)
+int ra_conf_hoplimit(int newvalue)
 {
-	if (val > 0 && val != ra_hoplimit) {
-		ra_hoplimit = val;
-		return true;
-	}
+	static int value = 0;
 
-	return false;
+	if (newvalue > 0)
+		value = newvalue;
+
+	return value;
 }
 
-static bool ra_set_mtu(int val)
+int ra_conf_mtu(int newvalue)
 {
-	if (val >= 1280 && val <= 65535 && ra_mtu != val) {
-		ra_mtu = val;
-		return true;
-	}
+	static int value = 0;
 
-	return false;
+	if (newvalue >= 1280 && newvalue <= 65535)
+		value = newvalue;
+
+	return value;
 }
 
-static bool ra_set_reachable(int val)
+int ra_conf_reachable(int newvalue)
 {
-	if (val > 0 && val <= 3600000 && ra_reachable != val) {
-		ra_reachable = val;
-		return true;
-	}
+	static int value = 0;
 
-	return false;
+	if (newvalue > 0 && newvalue <= 3600000)
+		value = newvalue;
+
+	return value;
 }
 
-static bool ra_set_retransmit(int val)
+int ra_conf_retransmit(int newvalue)
 {
-	if (val > 0 && val <= 60000 && ra_retransmit != val) {
-		ra_retransmit = val;
-		return true;
-	}
+	static int value = 0;
 
-	return false;
-}
+	if (newvalue > 0 && newvalue <= 60000)
+		value = newvalue;
 
-int ra_get_hoplimit(void)
-{
-	return ra_hoplimit;
-}
-
-int ra_get_mtu(void)
-{
-	return ra_mtu;
-}
-
-int ra_get_reachable(void)
-{
-	return ra_reachable;
-}
-
-int ra_get_retransmit(void)
-{
-	return ra_retransmit;
+	return value;
 }
 
 bool ra_process(void)
@@ -366,13 +311,11 @@ bool ra_process(void)
 		socklen_t alen = sizeof(addr);
 		int sock = socket(AF_INET6, SOCK_RAW, IPPROTO_ICMPV6);
 
-		if (sock >= 0) {
-			if (!connect(sock, (struct sockaddr*)&addr, sizeof(addr)) &&
-					!getsockname(sock, (struct sockaddr*)&addr, &alen))
-				lladdr = addr.sin6_addr;
+		if (!connect(sock, (struct sockaddr*)&addr, sizeof(addr)) &&
+				!getsockname(sock, (struct sockaddr*)&addr, &alen))
+			lladdr = addr.sin6_addr;
 
-			close(sock);
-		}
+		close(sock);
 	}
 
 	while (true) {
@@ -431,39 +374,28 @@ bool ra_process(void)
 						0, ra_holdoff_interval);
 
 		// Parse hoplimit
-		changed |= ra_set_hoplimit(adv->nd_ra_curhoplimit);
+		ra_conf_hoplimit(adv->nd_ra_curhoplimit);
 
 		// Parse ND parameters
-		changed |= ra_set_reachable(ntohl(adv->nd_ra_reachable));
-		changed |= ra_set_retransmit(ntohl(adv->nd_ra_retransmit));
+		ra_conf_reachable(ntohl(adv->nd_ra_reachable));
+		ra_conf_retransmit(ntohl(adv->nd_ra_retransmit));
 
 		// Evaluate options
 		struct icmpv6_opt *opt;
 		icmpv6_for_each_option(opt, &adv[1], &buf[len]) {
 			if (opt->type == ND_OPT_MTU) {
 				uint32_t *mtu = (uint32_t*)&opt->data[2];
-				changed |= ra_set_mtu(ntohl(*mtu));
+				ra_conf_mtu(ntohl(*mtu));
 			} else if (opt->type == ND_OPT_ROUTE_INFORMATION && opt->len <= 3) {
-				struct icmpv6_opt_route_info *ri = (struct icmpv6_opt_route_info *)opt;
-
-				if (ri->prefix_len > 128) {
-					continue;
-				} else if (ri->prefix_len > 64) {
-					if (ri->len < 2)
-						continue;
-				} else if (ri->prefix_len > 0) {
-					if (ri->len < 1)
-						continue;
-				}
-
 				entry->router = from.sin6_addr;
 				entry->target = any;
-				entry->priority = pref_to_priority(ri->flags);
-				entry->length = ri->prefix_len;
-				entry->valid = ntohl(ri->lifetime);
-				memcpy(&entry->target, ri->prefix, (ri->len - 1) * 8);
+				entry->priority = pref_to_priority(opt->data[1]);
+				entry->length = opt->data[0];
+				uint32_t *valid = (uint32_t*)&opt->data[2];
+				entry->valid = ntohl(*valid);
+				memcpy(&entry->target, &opt->data[6], (opt->len - 1) * 8);
 
-				if (IN6_IS_ADDR_LINKLOCAL(&entry->target)
+				if (entry->length > 128 || IN6_IS_ADDR_LINKLOCAL(&entry->target)
 						|| IN6_IS_ADDR_LOOPBACK(&entry->target)
 						|| IN6_IS_ADDR_MULTICAST(&entry->target))
 					continue;

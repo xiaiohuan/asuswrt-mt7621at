@@ -8,9 +8,8 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/Makefile.in
 
 AM_CFLAGS = \
-	-I$(top_srcdir)/include \
-	$(PLUGIN_AUTH_PAM_CFLAGS) \
-	$(OPTIONAL_CRYPTO_CFLAGS)
+	-I$(top_srcdir)/include
+	$(PLUGIN_AUTH_PAM_CFLAGS)
 
 if ENABLE_PLUGIN_AUTH_PAM
 plugin_LTLIBRARIES = openvpn-plugin-auth-pam.la
@@ -18,7 +17,6 @@ dist_doc_DATA = README.auth-pam
 endif
 
 openvpn_plugin_auth_pam_la_SOURCES = \
-	utils.c \
 	auth-pam.c \
 	pamdl.c  pamdl.h \
 	auth-pam.exports

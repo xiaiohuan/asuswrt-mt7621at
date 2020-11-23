@@ -28,6 +28,39 @@ p{
 	text-align: center;
 	margin-top: 4px;
 }
+.nav {
+	display:none;
+    float: left;
+    width: 107%;
+    margin-bottom: 30px;
+    margin-top: -7px;
+}
+.nav ul{
+    margin: 0;
+    padding: 0;
+    border-top:solid 2px #666;
+}
+.nav li{
+	font-family:Arial;
+    position: relative;
+    float: left;
+    color: #FFF;
+    list-style: none;
+    background:#4d595d;
+    cursor:pointer;
+    width: 100%;
+}
+.nav li:hover{
+	background-color:#77A5C6;
+}
+.nav li a {
+    display: block; 
+    padding: 6px;      
+    color: #FFF;
+    border-bottom:solid 1px #666;
+    text-decoration: none;
+    cursor:pointer;
+} 
 .ipMethod{
 	background-color: #222;
 	font-size: 10px;
@@ -51,7 +84,7 @@ p{
 <script type="text/javascript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="/help.js"></script>
 <script>
-if(parent.location.pathname.search("index") === -1) top.location.href = "../"+'<% networkmap_page(); %>';
+if(parent.location.pathname.search("index") === -1) top.location.href = "../index.asp";
 
 var wirelessOverFlag = false;
 overlib.isOut = true;
@@ -98,11 +131,11 @@ function initial(){
 	generate_wireless_band_list();
 	updateClientList();
 	updateClientListBackground();
-
-	reset_NM_height();
 }
 
 function convRSSI(val){
+	if(val == "") return "wired";
+
 	val = parseInt(val);
 	if(val >= -50) return 4;
 	else if(val >= -80)	return Math.ceil((24 + ((val + 80) * 26)/10)/25);
@@ -210,12 +243,10 @@ function drawClientList(tab){
 		clientHtmlTd += '</td><td>';
 		var rssi_t = 0;
 		var connectModeTip = "";
-		if(clientObj.isWL == "0") {
-			rssi_t = "wired";
+		rssi_t = convRSSI(clientObj.rssi);
+		if(isNaN(rssi_t))
 			connectModeTip = "<#tm_wired#>";
-		}
 		else {
-			rssi_t = convRSSI(clientObj.rssi);
 			switch (rssi_t) {
 				case 1:
 					connectModeTip = "<#Radio#>: <#PASS_score1#>\n";
@@ -274,7 +305,7 @@ function drawClientList(tab){
 	}
 
 	if(clientHtmlTd == ''){
-		if(networkmap_fullscan == 2)
+		if(networkmap_fullscan == 1)
 			clientHtmlTd = '<div style="color:#FC0;height:30px;text-align:center;margin-top:15px"><#Device_Searching#><img src="/images/InternetScan.gif"></div>';
 		else
 			clientHtmlTd = '<div style="color:#FC0;height:30px;text-align:center;margin-top:15px"><#IPConnection_VSList_Norule#></div>';
@@ -289,30 +320,12 @@ function drawClientList(tab){
 	document.getElementById("rightBtn").style.visibility = (pagesVar.endIndex >= clientList.length) ? "hidden" : "visible";
 
 	// Wired
-	if(!(isSwMode('mb') || isSwMode('ew'))) {
-		document.getElementById("tabWired").style.display = (totalClientNum.wired == 0) ? "none" : "";
-		document.getElementById("tabWiredNum").innerHTML = 	totalClientNum.wired;
-
-		if(document.getElementById("tabWired").offsetWidth > 150 || 
-			(document.getElementById("tabOnline").offsetWidth+document.getElementById("tabWired").offsetWidth+document.getElementById("tabWireless").offsetWidth) > 300){
-			var wired_span = document.getElementById("tabWiredSpan").innerHTML;
-			var Modified_wired_term = wired_span.replace("<#tm_wired#>", "<#wan_ethernet#>");
-			document.getElementById("tabWiredSpan").innerHTML = Modified_wired_term;
-		}	
-	}
+	document.getElementById("tabWired").style.display = (totalClientNum.wired == 0) ? "none" : "";
+	document.getElementById("tabWiredNum").innerHTML = 	totalClientNum.wired;
 
 	// Wireless
-	if(!(isSwMode('mb') || isSwMode('ew'))) {
-		document.getElementById("tabWireless").style.display = (totalClientNum.wireless == 0) ? "none" : "";
-		document.getElementById("tabWirelessNum").innerHTML = totalClientNum.wireless;
-
-		if(document.getElementById("tabWireless").offsetWidth > 150 || 
-			(document.getElementById("tabOnline").offsetWidth+document.getElementById("tabWired").offsetWidth+document.getElementById("tabWireless").offsetWidth) > 300){
-			var wireless_span = document.getElementById("tabWirelessSpan").innerHTML;
-			var Modified_wireless_term = wireless_span.replace("<#tm_wireless#>", "Wi-Fi");
-			document.getElementById("tabWirelessSpan").innerHTML = Modified_wireless_term;
-		}
-	}
+	document.getElementById("tabWireless").style.display = (totalClientNum.wireless == 0) ? "none" : "";
+	document.getElementById("tabWirelessNum").innerHTML = totalClientNum.wireless;
 	if(totalClientNum.wireless == 0) 
 		wirelessOverFlag = false;
 
@@ -465,8 +478,8 @@ function updateClientList(e){
 			<table width="100px" border="0" align="left" style="margin-left:8px;" cellpadding="0" cellspacing="0">
 				<td>
 					<div id="tabOnline" class="tabclick_NW" align="center">
-						<span id="tabOnlineSpan">
-							<#Clientlist_Online#>
+						<span>
+							Online
 						</span>
 					</div>
 					<script>
@@ -482,8 +495,8 @@ function updateClientList(e){
 				</td>
 				<td>
 					<div id="tabWired" class="tab_NW" align="center" style="display:none">
-						<span id="tabWiredSpan">
-							<#tm_wired#>&nbsp;(<b style="font-size:10px;" id="tabWiredNum">0</b>)
+						<span>
+							Wired (<b style="font-size:10px;" id="tabWiredNum">0</b>)
 						</span>
 					</div>
 					<script>
@@ -498,11 +511,11 @@ function updateClientList(e){
 					</script>
 				</td>
 				<td>
-					<div id="tabWireless" class="tab_NW" align="center" style="display:none;position:relative;min-width:85px;">
+					<div id="tabWireless" class="tab_NW" align="center" style="display:none">											
     					<span id="tabWirelessSpan">
-							<#tm_wireless#>&nbsp;(<b style="font-size:10px;" id="tabWirelessNum">0</b>)
+							Wireless (<b style="font-size:10px;" id="tabWirelessNum">0</b>)
 						</span>
-						<nav class="nav" style="position:absolute;" id="select_wlclient_band"></nav>
+						<nav class="nav" id="select_wlclient_band"></nav>    
 					</div>
 					<script>
 						function switchTab_drawClientList(wband){
@@ -556,7 +569,7 @@ function updateClientList(e){
 
 	<tr>
 		<td>				
-			<table width="95%" border="0" align="center" cellpadding="4" cellspacing="0" class="list_bg">
+			<table width="95%" border="0" align="center" cellpadding="4" cellspacing="0" style="background-color:#4d595d;">
   				<tr>
     				<td style="padding:3px 3px 5px 5px;">
 						<input type="text" placeholder="Search" id="searchingBar" class="input_25_table" style="width:96%;margin-top:3px;margin-bottom:3px" maxlength="" value="" autocorrect="off" autocapitalize="off">
@@ -580,11 +593,12 @@ function updateClientList(e){
 <input type="button" id="refresh_list" class="button_gen" value="<#CTL_refresh#>" style="margin-left:70px;">
 	<script>
 		document.getElementById('refresh_list').onclick = function(){
+			var local_mac = '<% nvram_get("lan_hwaddr"); %>';
+			cookie.unset("wireless_list_" + local_mac + "_temp");
+			cookie.unset("wireless_list_" + local_mac);
 			parent.manualUpdate = true;
 			document.form.submit();
 		}
-
-		if(parent.document.stopNetworkmapd.networkmap_enable.value == 0 && disnwmd_support) $("#refresh_list").hide()
 	</script>
 <img src="/images/InternetScan.gif" id="loadingIcon" style="visibility:hidden">
 <img height="25" id="rightBtn" onclick="updatePagesVar('+');" style="cursor:pointer;margin-left:25px;" src="/images/arrow-right.png">

@@ -2,13 +2,13 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <html xmlns:v>
 <head>
-<meta http-equiv="X-UA-Compatible" content="IE=Edge"/>
+<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7"/>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
 <meta HTTP-EQUIV="Pragma" CONTENT="no-cache">
 <meta HTTP-EQUIV="Expires" CONTENT="-1">
 <link rel="shortcut icon" href="images/favicon.png">
 <link rel="icon" href="images/favicon.png">
-<title><#Web_Title#> - <#WiFi_Proxy_item#></title>
+<title><#Web_Title#> - Wi-Fi Proxy</title>
 <link rel="stylesheet" type="text/css" href="index_style.css">
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <link rel="stylesheet" type="text/css" href="other.css">
@@ -18,16 +18,32 @@
 <script type="text/javascript" src="/help.js"></script>
 <script type="text/javascript" src="/js/jquery.js"></script>
 <script>
+var $j = jQuery.noConflict();
 
 function initial(){
 	show_menu();
+
+	if(!band5g_support){
+		document.getElementById("wl_unit_field").style.display = "none";
+	}
+	else{
+		if(document.form.wl_unit.value == 0){
+			document.getElementById("table_proto_2").style.display = "";
+		}
+		else{
+			document.getElementById("table_proto_5").style.display = "";
+		}
+	}
 
 	if(productid == "RP-N53")
 		document.getElementById("wifipxy_enable_prompt").style.display = "";
 }
 
-function enable_wifipxy(enable){
+function enable_wifipxy_2(enable){
 	document.form.wlc0_wifipxy.value = enable;
+}
+
+function enable_wifipxy_5(enable){
 	document.form.wlc1_wifipxy.value = enable;
 }
 
@@ -89,13 +105,13 @@ function applyRule(){
 			<tr>
 			  <td bgcolor="#4D595D" valign="top" height="360px">
 				<div>&nbsp;</div>
-				<div class="formfonttitle"><#menu5_1#> - <#WiFi_Proxy_item#></div>
-				<div style="margin-left:5px;margin-top:10px;margin-bottom:10px"><img src="/images/New_ui/export/line_export.png"></div>	
-				<div class="formfontdesc"><#WiFi_Proxy_desc#></div>
+				<div class="formfonttitle"><#menu5_1#> - Wi-Fi Proxy</div>
+				<div style="margin-left:5px;margin-top:10px;margin-bottom:10px"><img src="/images/New_ui/export/line_export.png"></div>
+				<div class="formfontdesc">Enable this feature in Repeater mode to successfully extend certain hotspot (public Wi-Fi) network.</div>
 
 				<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3"  class="FormTable">
 
-					<tr id="wl_unit_field" class="rept" style="display:none">
+					<tr id="wl_unit_field" class="rept">
 						<th><#Interface#></th>
 						<td>
 							<select name="wl_unit" class="input_option" onChange="change_wl_unit();">
@@ -105,12 +121,20 @@ function applyRule(){
 						</td>
 					</tr>
 
-					<tr>
-						<th><a><#WiFi_Proxy_enable#></a></th>
+					<tr id="table_proto_2" style="display:none">
+						<th><a>Enable Wi-Fi Proxy?</a></th>
 						<td>
-							<input type="radio" name="wifipxy_enable_2" class="input" value="1" onclick="enable_wifipxy('1')" <% nvram_match("wlc0_wifipxy", "1", "checked"); %>><#checkbox_Yes#>
-							<input type="radio" name="wifipxy_enable_2" class="input" value="0" onclick="enable_wifipxy('0')" <% nvram_match("wlc0_wifipxy", "0", "checked"); %>><#checkbox_No#>
+							<input type="radio" name="wifipxy_enable_2" class="input" value="1" onclick="enable_wifipxy_2('1')" <% nvram_match("wlc0_wifipxy", "1", "checked"); %>><#checkbox_Yes#>
+							<input type="radio" name="wifipxy_enable_2" class="input" value="0" onclick="enable_wifipxy_2('0')" <% nvram_match("wlc0_wifipxy", "0", "checked"); %>><#checkbox_No#>
 							<span id="wifipxy_enable_prompt" style="display:none;">(Only support 2.4GHz)</span>
+						</td>
+					</tr>
+
+					<tr id="table_proto_5" style="display:none">
+						<th><a>Enable Wi-Fi Proxy?</a></th>
+						<td>
+							<input type="radio" name="wifipxy_enable_5" class="input" value="1" onclick="enable_wifipxy_5('1')" <% nvram_match("wlc1_wifipxy", "1", "checked"); %>><#checkbox_Yes#>
+							<input type="radio" name="wifipxy_enable_5" class="input" value="0" onclick="enable_wifipxy_5('0')" <% nvram_match("wlc1_wifipxy", "0", "checked"); %>><#checkbox_No#>
 						</td>
 					</tr>
 				</table>

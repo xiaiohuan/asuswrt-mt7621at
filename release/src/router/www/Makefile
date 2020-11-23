@@ -3,55 +3,18 @@ include ../common.mak
 ASUSWRTTOOLSDIR = $(SRCBASE)/router/tools/Lnx_AsusWrtDictPrep
 ASUSWRTTOOLSDIR2 = $(SRCBASE)/router/tools/Lnx_ToolHelp
 
-MODELS_HAVE_USB3 = AC2900 \
-	BRT-AC828 RT-AD7200 \
-	DSL-AC68U \
-	RT-AC5300 GT-AC5300 GT-AC9600 RT-AC95U RT-AC3100 RT-AC3200 \
-	RT-AC55U RT-AC55UHP RT-AC58U 4G-AC53U RT-AC82U RT-AC88Q \
-	RT-AC86U RT-AC88U RT-AC87U RT-AC85U RT-AC85P RT-ACRH26 RT-AC68U RT-AC68A 4G-AC68U RT-AC65U RT-AC56S RT-AC56U \
-	RT-N65U \
-	RT-N18U \
-	RP-AC68U
-
-MODELS_HAVE_TRAFFIC_ANALYZER = RT-AC3200 RT-AC87U RT-AC88U RT-AX88U RT-AC86U GT-AC2900 RT-AC3100 RT-AC5300 GT-AC5300 GT-AC9600 DSL-AC68U RT-AC68U \
-	4G-AC68U RT-AC68R RT-AC68W RT-AC68RW GT-AX11000 RT-AC1900P RT-AC67U RT-AC56U RT-AC56R RT-AC85U RT-AC85P RT-AC65U BRT-AC828 BLUECAVE RT-AX92U
-
-MODELS_QIS_SLIDER = GT-AX11000 GT-AX6000 GT-AC5400
+MODELS_HAVE_USB3 = "DSL-AC68U RT-AC3200 RT-AC87U RT-AC68U RT-AC68A 4G-AC68U RT-AC56S RT-AC56U RT-AC55U RT-AC55UHP RT-N18U RT-N65U RT-AC88U RT-AC3100 RT-AC5300 RT-AC5300R RT-AC58U 4G-AC53U RT-AC82U"
 
 all:
-ifeq ($(and $(HND_ROUTER),$(RTCONFIG_VISUALIZATION)),y)
-VISWWW = $(SRCBASE)/../components/apps/visualization/www
-JQUERYLIB = $(SRCBASE)/../components/opensource/jquerylib
-endif
-
-ifeq ($(and $(HND_ROUTER),$(RTCONFIG_VISUALIZATION)),y)
-VISPAGES += $(VISWWW)/visindex.asp $(VISWWW)/channelcapacity.asp $(VISWWW)/channels.asp $(VISWWW)/configure.asp $(VISWWW)/metrics.asp
-VISPAGES += $(VISWWW)/channelcapacity.js $(VISWWW)/channels.js $(VISWWW)/common.js $(VISWWW)/configure.js $(VISWWW)/main.js $(VISWWW)/matrics.js
-VISPAGES += $(VISWWW)/tabheading.jpg $(VISWWW)/down-arrow.gif $(VISWWW)/up-arrow.gif $(VISWWW)/ap-image.jpg $(VISWWW)/download.jpg
-VISPAGES += $(VISWWW)/channelCapacity.css $(VISWWW)/configure.css $(VISWWW)/matrics.css $(VISWWW)/visstyle.css $(VISWWW)/tablestyle.css
-VISPAGES += $(VISWWW)/visualization.gif
-ifneq ($(NO_BCMINTERNAL), 1)
-VISPAGES += $(VISWWW)/zerowaitdfs.asp $(VISWWW)/zerowaitdfs.css $(VISWWW)/zerowaitdfs.js
-endif
-VISPAGES += $(JQUERYLIB)/curvedLines.js $(JQUERYLIB)/jquery.flot.axislabels.js $(JQUERYLIB)/jquery.flot.navigate.min.js
-VISPAGES += $(JQUERYLIB)/jquery.flot.stack.js $(JQUERYLIB)/highlightseries.js $(JQUERYLIB)/jquery.flot.js $(JQUERYLIB)/jquery.flot.orderBars.js
-VISPAGES += $(JQUERYLIB)/jquery.flot.time.min.js $(JQUERYLIB)/jquery.tablesorter.min.js $(JQUERYLIB)/jquery-2.0.3.min.js
-VISPAGES += $(JQUERYLIB)/jquery.cookie.js $(JQUERYLIB)/jquery.flot.min.js $(JQUERYLIB)/jquery.flot.pie.js
-VISPAGES += $(JQUERYLIB)/jquery-ui.js $(JQUERYLIB)/jquery-ui.min.css
-endif # HND_ROUTER && RTCONFIG_VISUALIZATION
 
 clean:
 
 install:
-	echo $(VISWWW)
 	rm -rf $(INSTALLDIR)/www
 
 	# INSTALLDIR is $(INSTALLDIR)/www here
 	mkdir -p $(INSTALLDIR)
 	cp ../www $(INSTALLDIR)/. -rf
-ifeq ($(and $(HND_ROUTER),$(RTCONFIG_VISUALIZATION)),y)
-	install -m 644 $(VISPAGES) $(INSTALLDIR)/www
-endif # CONFIG_VISUALIZATION
 	# INSTALL MODEL DEPENDENT files
 	cp ../www/sysdep/$(BUILD_NAME)/www $(INSTALLDIR)/. -rfL || true
 	rm -rf $(INSTALLDIR)/www/Makefile
@@ -64,20 +27,6 @@ endif # CONFIG_VISUALIZATION
 	rm -rf $(INSTALLDIR)/www/model_patch
 	rm -rf $(INSTALLDIR)/www/.gitignore
 	rm -rf `find $(INSTALLDIR) -name "*.bak"`
-	rm -rf $(INSTALLDIR)/www/device-map/compatibility.asp
-	cp -rf $(INSTALLDIR)/www/images/new/* $(INSTALLDIR)/www/images/
-	rm -rf $(INSTALLDIR)/www/images/new
-
-ifeq ($(RTCONFIG_AMAS),y)
-	cp $(TOP)/www/sysdep/BLUECAVE/www/QIS_wizard.htm $(INSTALLDIR)/www/QIS_wizard.htm
-	cp $(TOP)/www/sysdep/BLUECAVE/www/mobile $(INSTALLDIR)/www/mobile -rf
-	cp $(TOP)/www/sysdep/BLUECAVE/www/require/modules/modem.js $(INSTALLDIR)/www/require/modules/ -rf
-	cp $(TOP)/www/sysdep/downsizeImages/mobile.customize.black $(INSTALLDIR)/www/mobile.customize -rf
-	rm -rf $(INSTALLDIR)/www/images/qis
-	rm -rf $(INSTALLDIR)/www/qis
-	rm -rf $(INSTALLDIR)/www/qis_m
-	rm -rf $(INSTALLDIR)/www/QIS_wizard_m.htm
-endif
 
 	chmod -x `find $(INSTALLDIR)/www/ -name "*.asp"`
 	chmod -x `find $(INSTALLDIR)/www/ -name "*.htm"`
@@ -108,9 +57,6 @@ endif
 ifneq ($(RTCONFIG_FANCTRL),y)
 	rm -rf $(INSTALLDIR)/www/Advanced_PerformanceTuning_Content.asp
 	rm -rf $(INSTALLDIR)/www/fan.svg
-	rm -rf $(INSTALLDIR)/www/images/btnPressed.png
-	rm -rf $(INSTALLDIR)/www/images/btnReleased.png
-	rm -rf $(INSTALLDIR)/www/images/position.png
 endif
 ifeq ($(RTCONFIG_SFP),y)
 	rm -rf $(INSTALLDIR)/www/images/PrinterServer
@@ -153,6 +99,8 @@ ifeq ($(RTCONFIG_4M_SFP),y)
 	rm -rf $(INSTALLDIR)/www/tmhist.js
 	rm -rf $(INSTALLDIR)/www/tmmenu.css
 	rm -rf $(INSTALLDIR)/www/tmmenu.js
+	rm -rf $(INSTALLDIR)/www/images/New_ui/networkmap/map-iconClient-d.png
+	rm -rf $(INSTALLDIR)/www/images/New_ui/networkmap/map-iconInternet-d.png
 	rm -rf $(INSTALLDIR)/www/images/qis/android*
 	rm -rf $(INSTALLDIR)/www/images/qis/iOS*
 	rm -rf $(INSTALLDIR)/www/images/qis/mac.jpg
@@ -213,20 +161,10 @@ endif
 ifneq ($(RTCONFIG_SNMPD),y)
 	rm -rf $(INSTALLDIR)/www/Advanced_SNMP_Content.asp
 endif
-ifneq ($(RTCONFIG_NETOOL),y)
-	rm -rf $(INSTALLDIR)/www/Main_GameServer_Content.asp
-	rm -rf $(INSTALLDIR)/www/ajax/gameList.json
-	rm -rf $(INSTALLDIR)/www/images/map.png
-	rm -rf $(INSTALLDIR)/www/require/modules/mapApi.js
-	rm -rf $(INSTALLDIR)/www/js/table.js
-endif
 ifeq ($(RTCONFIG_DSL),y)
 	rm -rf $(INSTALLDIR)/www/qis/QIS_welcome.htm
-	rm -rf $(INSTALLDIR)/www/qis/QIS_manual.htm
 	rm -rf $(INSTALLDIR)/www/images/New_ui/rt.jpg
 	rm -rf $(INSTALLDIR)/www/images/New_ui/ap.jpg
-	rm -rf $(INSTALLDIR)/www/images/New_ui/re.jpg
-	rm -rf $(INSTALLDIR)/www/Advanced_OperationMode_Content.asp
 else
 	rm -rf $(INSTALLDIR)/www/images/New_ui/export/line_export_notif.png
 	rm -rf $(INSTALLDIR)/www/Main_Spectrum_Content.asp
@@ -244,22 +182,15 @@ endif
 ifneq ($(BUILD_NAME),DSL-N55U)
 ifneq ($(BUILD_NAME),DSL-N55U-B)
 ifneq ($(BUILD_NAME),RT-N56U)
-ifneq ($(BUILD_NAME),RT-AC65U)
 ifneq ($(RTCONFIG_CLOUDSYNC),y)
 	rm -rf $(INSTALLDIR)/www/images/cloudsync
 	rm -rf $(INSTALLDIR)/www/images/aicloud_logo.png
 	rm -rf $(INSTALLDIR)/www/images/New_ui/USBExt/*cloud*.png
 	rm -rf $(INSTALLDIR)/www/update_cloudstatus.asp
+	rm -rf $(INSTALLDIR)/www/get_webdavInfo.asp
 	rm -rf $(INSTALLDIR)/www/*cloud*.asp
 endif
 endif
-endif
-endif
-endif
-
-ifneq ($(or $(RTCONFIG_BWDPI),$(RTCONFIG_BWDPI_DEP)),y)
-ifneq ($(RTCONFIG_CLOUDSYNC),y)
-	rm -rf $(INSTALLDIR)/www/images/line.png
 endif
 endif
 
@@ -267,6 +198,7 @@ ifneq ($(RTCONFIG_IPV6),y)
 	rm -rf $(INSTALLDIR)/www/Main_IPV6Status_Content.asp
 	rm -rf $(INSTALLDIR)/www/Advanced_IPv6_Content.asp
 	rm -rf $(INSTALLDIR)/www/update_IPv6state.asp
+	rm -rf $(INSTALLDIR)/www/Advanced_Firewall_IPv6_Content.asp
 endif
 
 ifeq ($(RTCONFIG_NO_USBSTORAGE),y)
@@ -288,8 +220,6 @@ ifeq ($(RTCONFIG_NO_USBSTORAGE),y)
 	rm -rf $(INSTALLDIR)/www/images/New_ui/networkmap/blue.png
 	rm -rf $(INSTALLDIR)/www/images/New_ui/networkmap/red.png
 	rm -rf $(INSTALLDIR)/www/images/New_ui/networkmap/USB_2.png
-	# disk format
-	rm -rf $(INSTALLDIR)/www/device-map/disk_format.asp
 else
 ifneq ($(RTCONFIG_USB),y)
 	rm -rf $(INSTALLDIR)/www/images/New_ui/USBExt
@@ -338,14 +268,13 @@ ifneq ($(RTCONFIG_USB),y)
 	rm -rf $(INSTALLDIR)/www/images/New_ui/networkmap/blue.png
 	rm -rf $(INSTALLDIR)/www/images/New_ui/networkmap/red.png
 	rm -rf $(INSTALLDIR)/www/images/New_ui/networkmap/normal.png
+	rm -rf $(INSTALLDIR)/www/images/New_ui/networkmap/USB2.png
 	rm -rf $(INSTALLDIR)/www/images/New_ui/networkmap/USB_2.png
 	rm -rf $(INSTALLDIR)/www/disk_msg.js
 	rm -rf $(INSTALLDIR)/www/disk_fsck.xml
 	rm -rf $(INSTALLDIR)/www/disk_scan.asp
 	rm -rf $(INSTALLDIR)/www/diskmon_test.asp
 	rm -rf $(INSTALLDIR)/www/disk_functions.js
-	# disk format
-	rm -rf $(INSTALLDIR)/www/device-map/disk_format.asp
 endif
 ifneq ($(MODEM),y)
 	-rm -f $(INSTALLDIR)/www/qis/QIS_modem.htm
@@ -359,16 +288,16 @@ endif
 ifeq ($(RTCONFIG_OPENVPN), y)
 	cd $(INSTALLDIR)/www && ln -sf ../etc/openvpn/server1/client.ovpn && cd $(TOP)/www
 else
+	rm -rf $(INSTALLDIR)/www/merlin.js
 	rm -rf $(INSTALLDIR)/www/ajax_openvpn_server.asp
 	rm -rf $(INSTALLDIR)/www/Advanced_VPN_OpenVPN.asp
 ifneq ($(RTCONFIG_ACCEL_PPTPD), y)
 	rm -rf $(INSTALLDIR)/www/images/New_ui/vpnstatus.png
 	rm -rf $(INSTALLDIR)/www/Advanced_VPN_PPTP.asp
-	rm -rf $(INSTALLDIR)/www/ajax_vpnserver_client_status.xml
 endif
-ifneq ($(RTCONFIG_VPNC), y)
+ifneq ($(RTCONFIG_VPNC), y)	
 	rm -rf $(INSTALLDIR)/www/Advanced_VPNClient_Content.asp
-endif
+endif	
 endif
 ifneq ($(RTCONFIG_TIMEMACHINE),y)
 	rm -rf $(INSTALLDIR)/www/Advanced_TimeMachine.asp
@@ -377,6 +306,7 @@ ifneq ($(RTCONFIG_TIMEMACHINE),y)
 endif
 ifneq ($(RTCONFIG_PROXYSTA),y)
 ifneq ($(RTCONFIG_WIRELESSREPEATER),y)
+#	rm -rf $(INSTALLDIR)/www/images/survey
 	rm -rf $(INSTALLDIR)/www/images/New_ui/re.jpg
 	rm -rf $(INSTALLDIR)/www/qis/QIS_sitesurvey.htm
 endif
@@ -390,34 +320,14 @@ ifneq ($(RTCONFIG_KYIVSTAR),y)
 	rm -rf $(INSTALLDIR)/www/userRpm/SoftwareUpgradeRpm.htm
 endif
 
-ifneq ($(RTCONFIG_BWDPI)$(RTCONFIG_BWDPI_DEP),y)
+ifneq ($(RTCONFIG_BWDPI),y)
 	rm -rf $(INSTALLDIR)/www/AdaptiveQoS_Bandwidth_Monitor.asp
 	rm -rf $(INSTALLDIR)/www/AdaptiveQoS_WebHistory.asp
 	rm -rf $(INSTALLDIR)/www/AiProtection_HomeSecurity.asp
 	rm -rf $(INSTALLDIR)/www/AiProtection_Group.asp
 	rm -rf $(INSTALLDIR)/www/AiProtection_HomeProtection.asp
 	rm -rf $(INSTALLDIR)/www/AiProtection_WebProtector.asp
-	rm -rf $(INSTALLDIR)/www/AiProtection_InfectedDevicePreventBlock.asp
-	rm -rf $(INSTALLDIR)/www/AiProtection_IntrusionPreventionSystem.asp
-	rm -rf $(INSTALLDIR)/www/AiProtection_MaliciousSitesBlocking.asp
 	rm -rf $(INSTALLDIR)/www/images/New_ui/QoS_quick
-	rm -rf $(INSTALLDIR)/www/images/New_ui/infected.svg
-	rm -rf $(INSTALLDIR)/www/images/New_ui/IPS.svg
-	rm -rf $(INSTALLDIR)/www/images/New_ui/mals.svg
-	rm -rf $(INSTALLDIR)/www/images/New_ui/recount.svg
-	rm -rf $(INSTALLDIR)/www/images/New_ui/recount_hover.svg
-	rm -rf $(INSTALLDIR)/www/images/New_ui/add.svg
-	rm -rf $(INSTALLDIR)/www/images/New_ui/add_hover.svg
-	rm -rf $(INSTALLDIR)/www/images/New_ui/disable.svg
-	rm -rf $(INSTALLDIR)/www/images/save.svg
-	rm -rf $(INSTALLDIR)/www/images/save_hover.svg
-	rm -rf $(INSTALLDIR)/www/images/save_active.svg
-	rm -rf $(INSTALLDIR)/www/images/delete.svg
-	rm -rf $(INSTALLDIR)/www/images/delete_hover.svg
-	rm -rf $(INSTALLDIR)/www/images/delete_active.svg
-	rm -rf $(INSTALLDIR)/www/images/edit.svg
-	rm -rf $(INSTALLDIR)/www/images/edit_hover.svg
-	rm -rf $(INSTALLDIR)/www/images/edit_active.svg
 ifneq ($(RTCONFIG_PARENTALCTRL),y)
 	rm -rf $(INSTALLDIR)/www/blocking.asp
 endif
@@ -425,23 +335,15 @@ endif
 	rm -rf $(INSTALLDIR)/www/getWebHistory.asp
 	rm -rf $(INSTALLDIR)/www/getAppTraffic.asp
 	rm -rf $(INSTALLDIR)/www/getWanTraffic.asp
-	rm -rf $(INSTALLDIR)/www/getAiProtectionEvent.asp
-	rm -rf $(INSTALLDIR)/www/getIPSChart.asp
-	rm -rf $(INSTALLDIR)/www/getIPSDetailEvent.asp
-	rm -rf $(INSTALLDIR)/www/getIPSEvent.asp
-	rm -rf $(INSTALLDIR)/www/getNonIPSChart.asp
 	rm -rf $(INSTALLDIR)/www/tm_eula.htm
-	rm -rf $(INSTALLDIR)/www/js/Chart.js
 	rm -rf $(INSTALLDIR)/www/images/New_ui/HomeProtection.png
 	rm -rf $(INSTALLDIR)/www/images/New_ui/TimeLimits.png
 	rm -rf $(INSTALLDIR)/www/images/New_ui/Web_Apps_Restriction.png
-	rm -rf $(INSTALLDIR)/www/images/New_ui/AiProtection_01.png
-	rm -rf $(INSTALLDIR)/www/images/New_ui/AiProtection_02.png
-	rm -rf $(INSTALLDIR)/www/images/New_ui/AiProtection_03.png
+	rm -rf $(INSTALLDIR)/www/images/New_ui/AiProtection.png
 	rm -rf $(INSTALLDIR)/www/images/New_ui/Home_Protection_Scenario.png
-	rm -rf $(INSTALLDIR)/www/images/New_ui/tm_logo.png
-	rm -rf $(INSTALLDIR)/www/images/New_ui/tm_logo_power.png
-	rm -rf $(INSTALLDIR)/www/images/New_ui/tm_logo_1.png
+	rm -rf $(INSTALLDIR)/www/images/New_ui/tm_logo.png	
+	rm -rf $(INSTALLDIR)/www/images/New_ui/tm_logo_power.png	
+	rm -rf $(INSTALLDIR)/www/images/New_ui/tm_logo_1.png	
 	rm -rf $(INSTALLDIR)/www/images/New_ui/sample_35.png
 	rm -rf $(INSTALLDIR)/www/images/New_ui/app_icons
 ifneq ($(RTCONFIG_ROG),y)
@@ -461,8 +363,13 @@ ifneq ($(RTCONFIG_ROG),y)
 	rm -rf $(INSTALLDIR)/www/api.asp
 endif
 
+ifeq ($(findstring $(BUILD_NAME),$(MODELS_HAVE_USB3)),)
+	rm -rf $(INSTALLDIR)/www/images/New_ui/networkmap/USB3.png
+endif
+
 ifneq ($(RTCONFIG_DROPBOXCLIENT),y)
 	rm -rf $(INSTALLDIR)/www/images/cloudsync/dropbox.png
+	rm -rf $(INSTALLDIR)/www/dropbox_callback.htm
 endif
 
 ifneq ($(RTCONFIG_FTPCLIENT),y)
@@ -471,11 +378,11 @@ ifneq ($(RTCONFIG_SAMBACLIENT),y)
 endif
 endif
 
-ifneq ($(RTCONFIG_SNMPD), y)
+ifneq ($(RTCONFIG_SNMPD), y)	
 	rm -rf $(INSTALLDIR)/www/Advanced_SNMP_Content.asp
 endif
 
-ifneq ($(BUILD_NAME),$(filter $(BUILD_NAME), RT-AC3200 RT-AC5300 GT-AC5300 GT-AC9600 RT-AC86U AC2900 RT-AC88U RT-AC3100))
+ifneq ($(BUILD_NAME),$(filter $(BUILD_NAME), RT-AC3200 RT-AC5300 RT-AC5300R RT-AC88U RT-AC3100))
 	rm -rf $(INSTALLDIR)/www/Advanced_Smart_Connect.asp
 	rm -rf $(INSTALLDIR)/www/images/New_ui/smart_connect.png
 	rm -rf $(INSTALLDIR)/www/images/New_ui/smart_connect_concept.gif
@@ -498,7 +405,7 @@ ifneq ($(RTCONFIG_TOR), y)
 	rm -rf $(INSTALLDIR)/www/Advanced_TOR_Content.asp
 endif
 
-ifneq ($(BUILD_NAME),$(filter $(BUILD_NAME), $(MODELS_HAVE_TRAFFIC_ANALYZER)))
+ifneq ($(BUILD_NAME),$(filter $(BUILD_NAME), RT-AC3200 RT-AC88U RT-AC3100 RT-AC5300 RT-AC5300R RT-AC87U DSL-AC68U RT-AC56U RT-AC56R RT-AC68U RT-AC68R RT-AC68W RT-AC68RW RT-AC1900P RT-AC67U))
 	rm -rf $(INSTALLDIR)/www/TrafficAnalyzer_Statistic.asp
 	rm -rf $(INSTALLDIR)/www/images/New_ui/TrafficAnalyzer.gif
 	rm -rf $(INSTALLDIR)/www/images/New_ui/cancel.svg
@@ -511,17 +418,17 @@ ifneq ($(RTCONFIG_KEY_GUARD), y)
 	rm -rf $(INSTALLDIR)/www/images/New_ui/Key-Guard.png
 endif
 
-ifeq ($(BUILD_NAME),$(filter $(BUILD_NAME), 4G-AC53U 4G-AC55U 4G-AC68U))
+ifeq ($(BUILD_NAME),$(filter $(BUILD_NAME), 4G-AC53U 4G-AC55U))
 	rm -rf $(INSTALLDIR)/www/Advanced_Modem_Content.asp
 endif
 
-ifneq ($(BUILD_NAME),$(filter $(BUILD_NAME), RT-AC88U RT-AC3100 RT-AC5300 GT-AC5300 GT-AC9600 RT-AC86U AC2900 RT-AC3200))
+ifneq ($(BUILD_NAME),$(filter $(BUILD_NAME), RT-AC88U RT-AC3100 RT-AC5300 RT-AC5300R RT-AC3200))
 	rm -rf $(INSTALLDIR)/www/QIS_wizard_m.htm
 	rm -rf $(INSTALLDIR)/www/css/effect.css
 	rm -rf $(INSTALLDIR)/www/qis_m
 	rm -rf $(INSTALLDIR)/www/images/qis/icon_MAC_clone.svg
 	rm -rf $(INSTALLDIR)/www/images/qis/logo.png
-ifneq ($(BUILD_NAME),$(filter $(BUILD_NAME), RP-AC66 RP-AC68U RP-AC51 MAP-AC1300 MAP-AC2200 VZW-AC1300 MAP-AC1750))
+ifneq ($(BUILD_NAME),$(filter $(BUILD_NAME), RP-AC66 RP-AC68U))
 	rm -rf $(INSTALLDIR)/www/css/icon-qis.css
 	rm -rf $(INSTALLDIR)/www/images/qis/loading.gif
 	rm -rf $(INSTALLDIR)/www/images/qis/mainimage_img4.png
@@ -530,11 +437,6 @@ ifneq ($(BUILD_NAME),$(filter $(BUILD_NAME), RP-AC66 RP-AC68U RP-AC51 MAP-AC1300
 endif
 endif
 
-ifneq ($(BUILD_NAME),$(filter $(BUILD_NAME), MAP-AC1300 MAP-AC2200 VZW-AC1300 MAP-AC1750))
-	rm -rf $(INSTALLDIR)/www/images/New_ui/asus_hive_block_internet_web.png
-endif
-
-
 ifneq ($(RTCONFIG_DISK_MONITOR), y)
 	rm -rf $(INSTALLDIR)/www/device-map/disk_utility.asp
 	rm -rf $(INSTALLDIR)/www/images/New_ui/networkmap/backgroud_move_8P_2.0.gif
@@ -542,6 +444,7 @@ endif
 
 ifneq ($(RTCONFIG_WTFAST), y)
 	rm -rf $(INSTALLDIR)/www/Advanced_WTFast_Content.asp
+	rm -rf $(INSTALLDIR)/www/GameBoost.asp
 	rm -rf $(INSTALLDIR)/www/js/fire.js
 	rm -rf $(INSTALLDIR)/www/images/fire.jpg
 	rm -rf $(INSTALLDIR)/www/images/wtfast_bg.png
@@ -551,53 +454,25 @@ ifneq ($(RTCONFIG_WTFAST), y)
 	rm -rf $(INSTALLDIR)/www/images/wtfast_back_hover.svg
 	rm -rf $(INSTALLDIR)/www/images/wtfast_device.svg
 	rm -rf $(INSTALLDIR)/www/images/wtfast_point.gif
-ifneq ($(RTCONFIG_BWDPI)$(RTCONFIG_BWDPI_DEP),y)
+	rm -rf $(INSTALLDIR)/www/images/GameBoost_AiProtection.png
+	rm -rf $(INSTALLDIR)/www/images/GameBoost_QoS.png
+	rm -rf $(INSTALLDIR)/www/images/GameBoost_WTFast.png
+	rm -rf $(INSTALLDIR)/www/images/New_ui/game.svg
+	rm -rf $(INSTALLDIR)/www/images/New_ui/mainimage_img_Game.png
+	rm -rf $(INSTALLDIR)/www/images/New_ui/pattern3_05.png
+	rm -rf $(INSTALLDIR)/www/images/New_ui/pattern3_10.png
+	rm -rf $(INSTALLDIR)/www/images/New_ui/add.svg
+	rm -rf $(INSTALLDIR)/www/images/New_ui/add_hover.svg
 	rm -rf $(INSTALLDIR)/www/images/New_ui/delete.svg
 	rm -rf $(INSTALLDIR)/www/images/New_ui/delete_hover.svg
-endif
+	rm -rf $(INSTALLDIR)/www/images/New_ui/disable.svg
 	rm -rf $(INSTALLDIR)/www/images/New_ui/enable.svg
 	rm -rf $(INSTALLDIR)/www/images/New_ui/logout.svg
 	rm -rf $(INSTALLDIR)/www/images/New_ui/logout_hover.svg
 	rm -rf $(INSTALLDIR)/www/images/New_ui/upgrade.svg
-	rm -rf $(INSTALLDIR)/www/images/New_ui/upgrade_hover.svg
-endif
-ifneq ($(RTCONFIG_WTF_REDEEM)$(RTCONFIG_WTFAST), y)
-	rm -rf $(INSTALLDIR)/www/images/New_ui/game.svg
-	rm -rf $(INSTALLDIR)/www/GameBoost.asp
-	rm -rf $(INSTALLDIR)/www/images/New_ui/GameBoost_AiProtection.png
-	rm -rf $(INSTALLDIR)/www/images/New_ui/GameBoost_QoS.png
-	rm -rf $(INSTALLDIR)/www/images/New_ui/GameBoost_WTFast.png
-	rm -rf $(INSTALLDIR)/www/images/New_ui/mainimage_img_Game.jpg
+	rm -rf $(INSTALLDIR)/www/images/New_ui/upgrade_hover.svg	
 endif
 
-ifneq ($(RTCONFIG_IPSEC), y)
-	rm -rf $(INSTALLDIR)/www/Advanced_VPN_IPSec.asp
-	rm -rf $(INSTALLDIR)/www/ajax_ipsec.asp
-	rm -rf $(INSTALLDIR)/www/ajax_ipsec_log.xml
-endif
-
-ifneq ($(RTCONFIG_IPSEC), y)
-	rm -rf $(INSTALLDIR)/www/Advanced_VPN_IPSec.asp
-	rm -rf $(INSTALLDIR)/www/ajax_ipsec.asp
-	rm -rf $(INSTALLDIR)/www/ajax_ipsec_log.xml
-endif
-
-ifneq ($(RTCONFIG_CAPTIVE_PORTAL), y)
-	rm -rf $(INSTALLDIR)/www/images/New_ui/captive_portal
-	rm -rf $(INSTALLDIR)/www/ajax_captive_portal.asp
-
-	rm -rf $(INSTALLDIR)/www/Captive_Portal.asp
-	rm -rf $(INSTALLDIR)/www/Captive_Portal.css
-	rm -rf $(INSTALLDIR)/www/Captive_Portal_Preview.asp
-	rm -rf $(INSTALLDIR)/www/Captive_Portal_template.js
-
-	rm -rf $(INSTALLDIR)/www/Captive_Portal_Advanced.asp
-	rm -rf $(INSTALLDIR)/www/Captive_Portal_Advanced.css
-	rm -rf $(INSTALLDIR)/www/Captive_Portal_Advanced_Preview.asp
-	rm -rf $(INSTALLDIR)/www/Captive_Portal_Advanced_template.js
-	rm -rf $(INSTALLDIR)/www/ajax_captive_portal_log.asp
-	rm -rf $(INSTALLDIR)/www/jscolor
-endif
 ifeq ($(RTCONFIG_NOIPTV), y)
 	rm -rf $(INSTALLDIR)/www/Advanced_IPTV_Content.asp
 endif
@@ -608,22 +483,7 @@ ifneq ($(RTCONFIG_TRAFFIC_LIMITER), y)
 endif
 
 ifneq ($(RTCONFIG_IFTTT), y)
-	rm -rf $(INSTALLDIR)/www/Advanced_Smart_Home_IFTTT.asp
-	rm -rf $(INSTALLDIR)/www/images/New_ui/smh_ifttt.png
-	rm -rf $(INSTALLDIR)/www/images/New_ui/smh_ifttt_asus_channel.png
-endif
-ifneq ($(RTCONFIG_ALEXA), y)
-	rm -rf $(INSTALLDIR)/www/Advanced_Smart_Home_Alexa.asp
-	rm -rf $(INSTALLDIR)/www/images/New_ui/smh_asus_router.png
-endif
-ifneq ($(or $(RTCONFIG_IFTTT),$(RTCONFIG_ALEXA)),y)
-	rm -rf $(INSTALLDIR)/www/images/New_ui/smh_step_1.png
-	rm -rf $(INSTALLDIR)/www/images/New_ui/smh_step_2.png
-	rm -rf $(INSTALLDIR)/www/images/New_ui/smh_step_2_text.png
-	rm -rf $(INSTALLDIR)/www/images/New_ui/smh_step_3.png
-	rm -rf $(INSTALLDIR)/www/images/New_ui/smh_step_3_acclink.png
-	rm -rf $(INSTALLDIR)/www/images/New_ui/smh_step_4_flow.png
-	rm -rf $(INSTALLDIR)/www/ifttt_style.css
+	rm -rf $(INSTALLDIR)/www/Advanced_IFTTT_Pincode.asp
 endif
 
 ifneq ($(RTCONFIG_PORT_BASED_VLAN), y)
@@ -631,106 +491,8 @@ ifneq ($(RTCONFIG_PORT_BASED_VLAN), y)
 	rm -rf $(INSTALLDIR)/www/Advanced_VLAN_DHCP_Content.asp
 	rm -rf $(INSTALLDIR)/www/Advanced_VLAN_Group_Content.asp
 endif
-ifneq ($(RTCONFIG_TAGGED_BASED_VLAN), y)
-	rm -rf $(INSTALLDIR)/www/Advanced_TagBasedVLAN_Content.asp
-endif
 ifneq ($(RTCONFIG_FBWIFI), y)
 	rm -rf $(INSTALLDIR)/www/Guest_network_fbwifi.asp
 	rm -rf $(INSTALLDIR)/www/ajax_fbwifi.asp
 	rm -rf $(INSTALLDIR)/www/fbwifi
-endif
-ifeq ($(RTCONFIG_NOTIFICATION_CENTER), y)
-ifneq ($(BUILD_NAME),$(filter $(BUILD_NAME), ))
-	rm -rf $(INSTALLDIR)/www/images/New_ui/nt_center
-	rm -rf $(INSTALLDIR)/www/notification_center
-	rm -rf $(INSTALLDIR)/www/nt_content.json
-else
-	cp $(INSTALLDIR)/www/notification_center/. $(INSTALLDIR)/www/. -rfL || true
-	rm -rf $(INSTALLDIR)/www/notification_center
-endif
-else
-	rm -rf $(INSTALLDIR)/www/images/New_ui/nt_center
-	rm -rf $(INSTALLDIR)/www/notification_center
-	rm -rf $(INSTALLDIR)/www/nt_content.json
-endif
-
-ifeq ($(BUILD_NAME),RT-AC68A)
-	cd $(INSTALLDIR)/www/require && mv menuTrees/menuTree_RTAC68A.js modules/menuTree.js
-else ifeq ($(BUILD_NAME),AC2900)
-	cd $(INSTALLDIR)/www/require && mv menuTrees/menuTree_AC2900.js modules/menuTree.js
-else ifeq ($(BUILD_NAME),RT-AC85U)
-	cd $(INSTALLDIR)/www/require && mv menuTrees/menuTree_RT-AC85U.js modules/menuTree.js
-else ifeq ($(BUILD_NAME),RT-ACRH26)
-	cd $(INSTALLDIR)/www/require && mv menuTrees/menuTree_RT-ACRH26.js modules/menuTree.js
-else ifeq ($(BUILD_NAME),RT-AC65U)
-	cd $(INSTALLDIR)/www/require && mv menuTrees/menuTree_RT-AC65U.js modules/menuTree.js
-else ifeq ($(BUILD_NAME),$(filter $(BUILD_NAME), GT-AC5300 GT-AC9600))
-	cd $(INSTALLDIR)/www/require && mv menuTrees/menuTree_ROG.js modules/menuTree.js
-else ifeq ($(BUILD_NAME),BRT-AC828)
-	cd $(INSTALLDIR)/www/require && mv menuTrees/menuTree_BRTAC828.js modules/menuTree.js
-else ifeq ($(BUILD_NAME),BLUECAVE)
-	cd $(INSTALLDIR)/www/require && mv menuTrees/menuTree_BLUECAVE.js modules/menuTree.js
-else ifeq ($(BUILD_NAME),$(filter $(BUILD_NAME), MAP-AC1300 MAP-AC2200 VZW-AC1300 MAP-AC1750))
-	cd $(INSTALLDIR)/www/require && mv menuTrees/menuTree_LYRA.js modules/menuTree.js
-else ifeq ($(RTCONFIG_BWDPI),y)
-ifeq ($(findstring $(BUILD_NAME),$(MODELS_HAVE_TRAFFIC_ANALYZER)),)
-	cd $(INSTALLDIR)/www/require && mv menuTrees/menuTree_bwdpi_no_traffic_analyzer.js modules/menuTree.js
-else
-	cd $(INSTALLDIR)/www/require && mv menuTrees/menuTree_bwdpi_traffic_analyzer.js modules/menuTree.js
-endif
-else
-	cd $(INSTALLDIR)/www/require && mv menuTrees/menuTree_no_bwdpi.js modules/menuTree.js
-endif
-	rm -rf $(INSTALLDIR)/www/require/menuTrees
-ifneq ($(BUILD_NAME),$(filter $(BUILD_NAME), BRT-AC828))
-	rm -rf $(INSTALLDIR)/www/images/New_ui/networkmap/M2.png
-	rm -rf $(INSTALLDIR)/www/images/New_ui/networkmap/M2_default.png
-endif
-
-ifeq ($(BUILD_NAME),BLUECAVE)
-	rm -rf $(INSTALLDIR)/www/images/qis
-	rm -rf $(INSTALLDIR)/www/qis
-	rm -rf $(INSTALLDIR)/www/qis_m
-	rm -rf $(INSTALLDIR)/www/QIS_wizard_m.htm
-endif
-
-ifeq ($(BUILD_NAME),$(filter $(BUILD_NAME), GT-AC5300 GT-AC9600))
-	rm -rf $(INSTALLDIR)/www/images/New_ui/networkmap/white_04.gif
-endif
-
-ifneq ($(RTCONFIG_VPN_FUSION), y)
-	rm -rf $(INSTALLDIR)/www/images/New_ui/vpn_illustration.png
-	rm -rf $(INSTALLDIR)/www/ajax_vpn_fusion.asp
-	rm -rf $(INSTALLDIR)/www/Advanced_VPNClientFusion_Content.asp
-else
-	cd $(INSTALLDIR)/www/ && mv Advanced_VPNClientFusion_Content.asp Advanced_VPNClient_Content.asp
-endif
-
-	ln -sf /tmp/fb_data.tgz.gz $(INSTALLDIR)/www/fb_data.tgz.gz
-
-ifneq ($(RTCONFIG_AMAS), y)
-	rm -rf $(INSTALLDIR)/www/device-map/amesh.asp
-	rm -rf $(INSTALLDIR)/www/device-map/amesh.css
-	rm -rf $(INSTALLDIR)/www/images/New_ui/amesh
-	rm -rf $(INSTALLDIR)/www/require/modules/amesh.js
-	rm -rf $(INSTALLDIR)/www/ajax_onboarding.asp
-	rm -rf $(INSTALLDIR)/www/get_release_note_amas.asp
-	rm -rf $(INSTALLDIR)/www/chcap.json
-	rm -rf $(INSTALLDIR)/www/message.htm
-	rm -rf $(INSTALLDIR)/www/AiMesh_Node_FirmwareUpgrade.asp
-endif
-
-ifeq ($(RTCONFIG_TCPDUMP),y)
-ifeq ($(RTCONFIG_SOC_IPQ40XX)$(RTCONFIG_PSISTLOG),yy)
-	ln -fs /jffs/pppoe.pcap $(INSTALLDIR)/www/pppoe.pcap
-	ln -fs /jffs/discover.pcap $(INSTALLDIR)/www/discover.pcap
-endif
-endif
-
-ifneq ($(RTCONFIG_DBLOG),y)
-	rm -rf $(INSTALLDIR)/www/images/New_ui/dblog_diag.gif
-endif
-
-ifneq ($(RTCONFIG_UUPLUGIN), y)
-	rm -rf $(INSTALLDIR)/www/images/uu_accelerator.png
 endif

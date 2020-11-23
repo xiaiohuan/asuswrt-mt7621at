@@ -7,7 +7,6 @@ APPS_RUN_DIR=$APPS_PATH/etc/init.d
 APPS_MOUNTED_PATH=`nvram get apps_mounted_path`
 APP_FS_TYPE=`mount | grep $APPS_MOUNTED_PATH | sed -e "s,.*on.* type \([^ ]*\) (.*$,\1,"`
 memsize=`grep MemTotal /proc/meminfo | sed -e "s,MemTotal:[^0-9]*\([0-9][0-9]*\) .*,\1,"`
-RT_MODEL=`nvram get model`
 
 
 if [ -z "$1" ] || [ -z "$2" ]; then
@@ -44,7 +43,7 @@ for f in $APPS_RUN_DIR/S*; do
 	[ -e "$s" ] && rm -f $s
 	if [ "$APP_FS_TYPE" == "fuseblk" ] ; then
 		sed -e "s,\(chmod.*\),echo skip \1," -e "s,\(chown.*\),echo skip \1," -e "s,/opt/etc/init\.d/\(S50[^. ]*\),/opt/\1.1," $f > $s
-	elif [ "$RT_MODEL" != "GT-AC5300" ]; then
+	else
 		cp -f $f $s
 	fi
 done
@@ -92,18 +91,11 @@ for f in $APPS_RUN_DIR/S*; do
 
 	nice_cmd=
 	if [ $memsize -lt 204800 -a "$tmp_apps_name" == "downloadmaster" ]; then
-		if [ "$RT_MODEL" != "GT-AC5300" ]; then
-			nice_cmd="nice -n 19"
-		fi
+		nice_cmd="nice -n 19"
 	fi
 
-	if [ "$RT_MODEL" == "GT-AC5300" ]; then
-		echo "sh $s $2"
-		sh $s $2
-	else
-		echo "$nice_cmd sh $s $2" | logger -c
-		$nice_cmd sh $s $2
-	fi
+	echo "$nice_cmd sh $s $2" | logger -c
+	$nice_cmd sh $s $2
 
 	if [ "$tmp_apps_name" == "mediaserver" ] && [ "$2" == "stop" ] ; then
 		sleep 1
@@ -111,13 +103,8 @@ for f in $APPS_RUN_DIR/S*; do
 		i=0
 		while [ ! -z "$ms_pid" ] && [ $i -lt 10 ] ; do
 			i=$((i+1))
-			if [ "$RT_MODEL" == "GT-AC5300" ]; then
-				echo "$i: sh $s $2"
-				sh $s $2
-			else
-				echo "$i: $nice_cmd sh $s $2" | logger -c
-				$nice_cmd sh $s $2
-			fi
+			echo "$i: $nice_cmd sh $s $2" | logger -c
+			$nice_cmd sh $s $2
 			sleep 1
 			ms_pid=`pidof minidlna`
 		done
@@ -135,16 +122,7 @@ done
 if [ $memsize -lt 204800 ]; then
 	dm2_trans_array=`ps|grep dm2_trans|grep -v grep|awk '{print $1}'`
 	for tran in $dm2_trans_array; do
-		if [ "$RT_MODEL" != "GT-AC5300" ]; then
-			ionice -c3 -p $tran
-		fi
-	done
-
-	ms_array=`ps|grep minidlna|grep -v grep|awk '{print $1}'`
-	for ms in $ms_array; do
-		if [ "$RT_MODEL" != "GT-AC5300" ]; then
-			ionice -c3 -p $ms
-		fi
+		ionice -c3 -p $tran
 	done
 fi
 

@@ -16,7 +16,6 @@
 #include <stdint.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <net/if.h>
 #include <net/route.h>
 
 #include "hash.h"
@@ -82,8 +81,6 @@ typedef struct l2tp_peer_t {
     size_t hostname_len;	/* Length of my hostname */
     char peername[MAX_HOSTNAME]; /* Peer's hostname. */
     size_t peername_len;	/* Length of hostname */
-    char ifname[IFNAMSIZ];      /* Network interface for peer route. */
-    size_t ifname_len;          /* Length of network interface */
     char secret[MAX_SECRET_LEN]; /* Secret for this peer */
     size_t secret_len;		/* Length of secret */
     struct l2tp_call_ops_t *lac_ops;	/* Call ops if we act as LAC */
@@ -497,5 +494,10 @@ int l2tp_option_set(EventSelector *es,
 
 void l2tp_option_register_section(option_handler *h);
 char const *l2tp_chomp_word(char const *line, char *word);
+
+/* tunnel.c */
+#ifdef RTCONFIG_VPNC
+extern int vpnc;
+#endif
 
 #endif

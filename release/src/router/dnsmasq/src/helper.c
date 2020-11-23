@@ -66,8 +66,7 @@ struct script_data
 #endif
   struct in6_addr addr6;
 #ifdef HAVE_DHCP6
-  int vendorclass_count;
-  unsigned int iaid;
+  int iaid, vendorclass_count;
 #endif
   unsigned char hwaddr[DHCP_CHADDR_MAX];
   char interface[IF_NAMESIZE];
@@ -81,8 +80,7 @@ int create_helper(int event_fd, int err_fd, uid_t uid, gid_t gid, long max_fd)
   pid_t pid;
   int i, pipefd[2];
   struct sigaction sigact;
-  unsigned char *alloc_buff = NULL;
-  
+
   /* create the pipe through which the main program sends us commands,
      then fork our process. */
   if (pipe(pipefd) == -1 || !fix_fd(pipefd[1]) || (pid = fork()) == -1)
@@ -188,16 +186,11 @@ int create_helper(int event_fd, int err_fd, uid_t uid, gid_t gid, long max_fd)
       struct script_data data;
       char *p, *action_str, *hostname = NULL, *domain = NULL;
       unsigned char *buf = (unsigned char *)daemon->namebuff;
-      unsigned char *end, *extradata;
+      unsigned char *end, *extradata, *alloc_buff = NULL;
       int is6, err = 0;
       int pipeout[2];
 
-      /* Free rarely-allocated memory from previous iteration. */
-      if (alloc_buff)
-	{
-	  free(alloc_buff);
-	  alloc_buff = NULL;
-	}
+      free(alloc_buff);
       
       /* we read zero bytes when pipe closed: this is our signal to exit */ 
       if (!read_write(pipefd[0], (unsigned char *)&data, sizeof(data), 1))

@@ -467,7 +467,7 @@ extern void set_file_integrity(const char *const file_name){
     closedir(opened_dir);
 }
 
-extern int initial_var_file(const char *const account, const char *const mount_path, const int is_group){
+extern int initial_var_file(const char *const account, const char *const mount_path){
 	FILE *fp;
 	char *var_file;
 	int i;
@@ -488,7 +488,7 @@ extern int initial_var_file(const char *const account, const char *const mount_p
 	get_all_folder(mount_path, &sh_num, &folder_list);
 
 	// 2. get the var file
-	if(get_var_file_name(account, mount_path, &var_file, is_group)){
+	if(get_var_file_name(account, mount_path, &var_file)){
 		usb_dbg("Can't malloc \"var_file\".\n");
 		free_2_dimension_list(&sh_num, &folder_list);
 		return -1;
@@ -556,8 +556,7 @@ extern int initial_var_file(const char *const account, const char *const mount_p
 extern int get_permission(const char *const account,
 						  const char *const mount_path,
 						  const char *const folder,
-						  const char *const protocol,
-						  const int is_group
+						  const char *const protocol
 						  ){
 	char *var_file, *var_info;
 	char *target, *follow_info;
@@ -565,7 +564,7 @@ extern int get_permission(const char *const account,
 	char *f = (char*) folder;
 
 	// 1. get the var file
-	if(get_var_file_name(account, mount_path, &var_file, is_group)){
+	if(get_var_file_name(account, mount_path, &var_file)){
 		usb_dbg("Can't malloc \"var_file\".\n");
 		return -1;
 	}
@@ -573,7 +572,7 @@ extern int get_permission(const char *const account,
 	// 2. check the file integrity.
 	if(!check_file_integrity(var_file)){
 		usb_dbg("Fail to check the file: %s.\n", var_file);
-		if(initial_var_file(account, mount_path, is_group) != 0){
+		if(initial_var_file(account, mount_path) != 0){
 			usb_dbg("Can't initial \"%s\"'s file in %s.\n", account, mount_path);
 			free(var_file);
 			return -1;
@@ -1310,7 +1309,7 @@ void getStr( char *str, char *substr, int substrlen, int start, int end )
 		*substr++ = *str++;
 	if (size > 0)
 		*substr = '\0';
-}
+} 
 
 void  getSubStr( char *str, char *substr, int start, int end )  
 {  
@@ -1865,8 +1864,7 @@ int smbc_get_usbdisk_permission(const char* user_name, const char* usbdisk_rel_s
 			permission = get_permission( user_name,
 									     usbdisk_rel_sub_path,
 									     usbdisk_sub_share_folder,
-									     "cifs",
-									     0);
+									     "cifs");
 		}
 		
 		Cdbg(DBE, "usbdisk_rel_sub_path=%s, usbdisk_sub_share_folder=%s, permission=%d, user_name=%s", 
@@ -3465,8 +3463,7 @@ int initial_aicloud_var_file(const char *const account, const char *const mount_
 
 int get_aicloud_permission(const char *const account,
 								const char *const mount_path,
-								const char *const folder,
-								const int is_group) {
+								const char *const folder) {
 	char *var_file, *var_info;
 	char *target, *follow_info;
 	int len, result;
@@ -3485,7 +3482,7 @@ int get_aicloud_permission(const char *const account,
 	// 2. check the file integrity.
 	if(!check_file_integrity(var_file)){
 		Cdbg(DBE, "Fail to check the file: %s.", var_file);
-		if(initial_var_file(account, mount_path, is_group) != 0){
+		if(initial_var_file(account, mount_path) != 0){
 			Cdbg(DBE, "Can't initial \"%s\"'s file in %s.", account, mount_path);
 			free(var_file);
 			return -1;
@@ -3568,6 +3565,7 @@ int set_aicloud_permission(const char *const account,
 						  const char *const mount_path,
 						  const char *const folder,
 						  const int flag) {
+
 	FILE *fp;
 	char *var_file, *var_info;
 	char *target, *follow_info;
@@ -3595,7 +3593,7 @@ int set_aicloud_permission(const char *const account,
 	// 2. check the file integrity.
 	if(!check_file_integrity(var_file)){
 		Cdbg(DBE, "Fail to check the file: %s.", var_file);
-		if(initial_var_file(account, mount_path, 0) != 0){
+		if(initial_var_file(account, mount_path) != 0){
 			Cdbg(DBE, "Can't initial \"%s\"'s file in %s.", account, mount_path);
 			free(var_file);
 			return -1;
@@ -3692,7 +3690,7 @@ int set_aicloud_permission(const char *const account,
 	fprintf(fp, "%s", var_info);
 	fclose(fp);
 	free(var_info);
-	
+
 	return 0;
 }
 

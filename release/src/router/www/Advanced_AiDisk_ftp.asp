@@ -20,12 +20,9 @@
 <script type="text/javascript" src="/disk_functions.js"></script>
 <script type="text/javascript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="/switcherplugin/jquery.iphone-switch.js"></script>
-<script type="text/javascript" src="/js/httpApi.js"></script>
 <script type="text/javascript">
 <% get_AiDisk_status(); %>
 <% get_permissions_of_account(); %>
-
-<% get_permissions_of_group(); %>
 
 var PROTOCOL = "ftp";
 
@@ -34,23 +31,23 @@ var FTP_status = get_ftp_status(); // FTP
 var AM_to_cifs = get_share_management_status("cifs");  // Account Management for Network-Neighborhood
 var AM_to_ftp = get_share_management_status("ftp");  // Account Management for FTP
 
-var accounts = [<% get_all_accounts(); %>][0];
-var groups = [<% get_all_groups(); %>];
+var accounts = [<% get_all_accounts(); %>];
 
 var lastClickedAccount = 0;
 var selectedAccount = null;
-var select_flag = "account";
-if(pm_support)
-	select_flag = "group";
+
 // changedPermissions[accountName][poolName][folderName] = permission
 var changedPermissions = new Array();
 
 var folderlist = new Array();
 
 var ddns_enable = '<% nvram_get("ddns_enable_x"); %>';
-var usb_port_conflict_faq = "https://www.asus.com/support/FAQ/1037906";
+
 function initial(){
 	show_menu();
+	document.getElementById("_APP_Installation").innerHTML = '<table><tbody><tr><td><div class="_APP_Installation"></div></td><td><div style="width:120px;"><#Menu_usb_application#></div></td></tr></tbody></table>';
+	document.getElementById("_APP_Installation").className = "menu_clicked";
+	
 	document.aidiskForm.protocol.value = PROTOCOL;
 	
 	if(is_KR_sku){
@@ -58,7 +55,7 @@ function initial(){
 	}
 	
 	// show accounts
-	showAccountGroupMenu(select_flag);
+	showAccountMenu();
 	
 	// show the kinds of permission
 	showPermissionTitle();
@@ -88,29 +85,6 @@ function initial(){
 		//document.getElementById("accountbtn").disabled = true;
 		//document.getElementById("sharebtn").disabled = true;	
 	}
-
-	//short term solution for brt-ac828
-	if(based_modelid == "BRT-AC828") {
-		document.getElementById("back_app_installation").style.display = "none";
-	}
-
-	if(pm_support)
-		$("#trPMGroup").css("display", "block");
-	else
-		$("#trAccount").css("display", "block");
-
-	if(FTP_status && httpApi.ftp_port_conflict_check.conflict()){
-		$("#ftpPortConflict").show();
-		var text = httpApi.ftp_port_conflict_check.usb_ftp.hint;
-		text += "<br>";
-		text += "<a id='ftp_port_conflict_faq' href='" + usb_port_conflict_faq + "' target='_blank' style='text-decoration:underline;color:#FC0;'><#FAQ_Find#></a>";
-		$("#ftpPortConflict").html(text);
-	}
-	httpApi.faqURL("1037906", function(url){
-		usb_port_conflict_faq = url;
-		if($("#ftpPortConflict").find("#ftp_port_conflict_faq").length)
-			$("#ftpPortConflict").find("#ftp_port_conflict_faq").attr("href", usb_port_conflict_faq);
-	});
 }
 
 function get_disk_tree(){
@@ -177,13 +151,6 @@ function switchAppStatus(protocol){  // turn on/off the share
 
 		confirm_str_off = "<#confirm_disableftp#>";
 		confirm_str_on = "<#confirm_enableftp#>";
-		if(httpApi.ftp_port_conflict_check.port_forwarding.enabled() && httpApi.ftp_port_conflict_check.port_forwarding.use_usb_ftp_port()){
-			confirm_str_on += "\n";
-			confirm_str_on += httpApi.ftp_port_conflict_check.usb_ftp.hint;
-			confirm_str_on += "\n";
-			confirm_str_on += "<#FAQ_Find#> : ";
-			confirm_str_on += usb_port_conflict_faq;
-		}
 	}
 
 	switch(status){
@@ -218,36 +185,31 @@ function switchAppStatus(protocol){  // turn on/off the share
 	}
 }
 
-function showAccountGroupMenu(flag){
-	var account_group_menu_code = "";
-
-	if(flag == "group")
-		account_group_list = this.groups;
-	else
-		account_group_list = this.accounts;
-
-	if(this.account_group_list.length <= 0)
-		account_group_menu_code += '<div class="noAccount" id="noAccount"><#Noaccount#></div>\n'
+function showAccountMenu(){
+	var account_menu_code = "";
+	
+	if(this.accounts.length <= 0)
+		account_menu_code += '<div class="noAccount" id="noAccount"><#Noaccount#></div>\n'
 	else{
-		for(var i = 0; i < account_group_list.length; ++i){
-			account_group_menu_code += '<div class="userIcon" id="';
-			account_group_menu_code += "account"+i;
-			if(decodeURIComponent(account_group_list[i]).length > 18){
-				account_group_menu_code += '" onClick="setSelectAccount('+i+');" style="white-space:nowrap;font-family:Courier New, Courier, mono;" title="'+htmlEnDeCode.htmlEncode(decodeURIComponent(account_group_list[i]))+'">'
-				account_group_menu_code += htmlEnDeCode.htmlEncode(decodeURIComponent(account_group_list[i])).substring(0,15) + '...';
+		for(var i = 0; i < this.accounts.length; ++i){
+			account_menu_code += '<div class="userIcon" id="';
+			account_menu_code += "account"+i;		
+			if(decodeURIComponent(this.accounts[i]).length > 18){
+				account_menu_code += '" onClick="setSelectAccount('+i+');" style="white-space:nowrap;font-family:Courier New, Courier, mono;" title="'+htmlEnDeCode.htmlEncode(decodeURIComponent(this.accounts[i]))+'">'
+				account_menu_code += htmlEnDeCode.htmlEncode(decodeURIComponent(this.accounts[i])).substring(0,15) + '...';
 			}	
 			else{
-				account_group_menu_code += '" onClick="setSelectAccount('+i+');" style="white-space:nowrap;font-family:Courier New, Courier, mono;">'
-				account_group_menu_code += htmlEnDeCode.htmlDecode(decodeURIComponent(decodeURIComponent(account_group_list[i])));
+				account_menu_code += '" onClick="setSelectAccount('+i+');" style="white-space:nowrap;font-family:Courier New, Courier, mono;">'
+				account_menu_code += htmlEnDeCode.htmlEncode(decodeURIComponent(this.accounts[i]));
 			}
 			
-			account_group_menu_code += '</div>\n';
+			account_menu_code += '</div>\n';	
 		}
 	}
 	
-	document.getElementById("account_menu").innerHTML = account_group_menu_code;
+	document.getElementById("account_menu").innerHTML = account_menu_code;
 	
-	if(account_group_list.length > 0){
+	if(this.accounts.length > 0){
 		if(get_manage_type(PROTOCOL) == 1)
 			setSelectAccount(0);
 	}
@@ -286,12 +248,8 @@ function showApplyBtn(){
 }
 
 function setSelectAccount(account_order){
+	this.selectedAccount = accounts[account_order];
 	
-	if(select_flag == "group")
-		this.selectedAccount = groups[account_order];
-	else
-		this.selectedAccount = accounts[account_order];
-
 	onEvent();
 	
 	show_permissions_of_account(account_order, PROTOCOL);
@@ -303,13 +261,7 @@ function getSelectedAccount(){
 }
 
 function show_permissions_of_account(account_order, protocol){
-	if(select_flag == "group"){
-		var accountName = groups[account_order];
-	}
-	else{
-		var accountName = accounts[account_order];
-	}
-
+	var accountName = accounts[account_order];
 	var poolName;
 	var permissions;
 
@@ -321,13 +273,7 @@ function show_permissions_of_account(account_order, protocol){
 				if(!this.clickedFolderBarCode[poolName])
 					continue;
 
-				if(select_flag == "group"){
-					permissions = get_group_permissions_in_pool(accountName, poolName);
-				}
-				else{
-					permissions = get_account_permissions_in_pool(accountName, poolName);
-				}
-
+				permissions = get_account_permissions_in_pool(accountName, poolName);
 				for(var j = 1; j < permissions.length; ++j){
 					var folderBarCode = get_folderBarCode_in_pool(poolName, permissions[j][0]);
 					if(protocol == "cifs")
@@ -348,13 +294,7 @@ function show_permissions_of_account(account_order, protocol){
 }
 
 function get_permission_of_folder(accountName, poolName, folderName, protocol){
-
-	if(select_flag == "group"){
-		var permissions = get_group_permissions_in_pool(accountName, poolName);
-	}
-	else{
-		var permissions = get_account_permissions_in_pool(accountName, poolName);
-	}
+	var permissions = get_account_permissions_in_pool(accountName, poolName);
 
 	for(var i = 1; i < permissions.length; ++i){
 		if(permissions[i][0] == folderName){
@@ -387,18 +327,12 @@ function submitChangePermission(protocol){
 	var orig_permission;
 	var target_account = null;
 	var target_folder = null;
-	var target_account_group = null;
 	
-	if(select_flag == "group")
-		target_account_group = groups;
-	else
-		target_account_group = accounts;
-
-	for(var i = -1; i < target_account_group.length; ++i){
+	for(var i = -1; i < accounts.length; ++i){
 		if(i == -1)
 			target_account = "guest";
 		else
-			target_account = target_account_group[i];
+			target_account = accounts[i];
 		
 		if(!changedPermissions[target_account])
 			continue;
@@ -432,11 +366,8 @@ function submitChangePermission(protocol){
 					// the item which was set already
 					if(changedPermissions[target_account][usbPartitionMountPoint][target_folder] == -1)
 						continue;
-					if(select_flag == "group")
-						document.aidiskForm.action = "/aidisk/set_group_permission.asp";
-					else
-						document.aidiskForm.action = "/aidisk/set_account_permission.asp";
-
+				
+					document.aidiskForm.action = "/aidisk/set_account_permission.asp";
 					if(target_account == "guest")
 						document.getElementById("account").disabled = 1;
 					else{
@@ -455,6 +386,11 @@ function submitChangePermission(protocol){
 					
 					// mark this item which is set
 					changedPermissions[target_account][usbPartitionMountPoint][target_folder] = -1;
+					/*alert("account = "+document.getElementById("account").value+"\n"+
+						  "pool = "+document.getElementById("pool").value+"\n"+
+						  "folder = "+document.getElementById("folder").value+"\n"+
+						  "protocol = "+document.getElementById("protocol").value+"\n"+
+						  "permission = "+document.getElementById("permission").value);//*/
 					showLoading();
 					document.aidiskForm.submit();
 					return;
@@ -492,18 +428,11 @@ function resultOfCreateAccount(){
 
 function onEvent(){
 	// account action buttons
-	//if(get_manage_type(PROTOCOL) == 1 && accounts.length < 6){
-		if(1){
+	if(get_manage_type(PROTOCOL) == 1 && accounts.length < 6){
 		changeActionButton(document.getElementById("createAccountBtn"), 'User', 'Add', 0);
-
-		var accounts_length = this.accounts.length;
+		
 		document.getElementById("createAccountBtn").onclick = function(){
-				if(accounts_length >= 6) {
-					alert("<#JS_itemlimit1#> 6 <#JS_itemlimit2#>");
-					return false;
-				}
-				else
-					popupWindow('OverlayMask','/aidisk/popCreateAccount.asp');
+				popupWindow('OverlayMask','/aidisk/popCreateAccount.asp');
 			};
 		document.getElementById("createAccountBtn").onmouseover = function(){
 				changeActionButton(this, 'User', 'Add', 1);
@@ -656,7 +585,7 @@ function onEvent(){
 		document.getElementById("modifyFolderBtn").onmouseover = function(){};
 		document.getElementById("modifyFolderBtn").onmouseout = function(){};
 	}
-
+	
 	document.getElementById("changePermissionBtn").onclick = function(){
 		submitChangePermission(PROTOCOL);
 	};
@@ -703,20 +632,6 @@ function validForm(){
 	}
 
 	return true;
-}
-
-function switchUserType(flag){
-	if(flag == "group")
-		select_flag = "group";
-	else
-		select_flag = "account";
-	showAccountGroupMenu(flag);
-	list_share_or_folder = 1; // 0: share, 1: folder.
-	isLoading = 0;
-	FromObject = "0";
-	Items = -1;
-	lastClickedObj = 0;
-	setTimeout('get_disk_tree();', 1000);
 }
 </script>
 </head>
@@ -778,7 +693,7 @@ function switchUserType(flag){
 							<span class="formfonttitle"><#menu5_4#> - <#menu5_4_2#></span>
 						</td>
 						<td align="right">
-							<img id='back_app_installation' onclick="go_setting('/APP_Installation.asp')" align="right" style="cursor:pointer;position:absolute;margin-left:-20px;margin-top:-30px;" title="<#Menu_usb_application#>" src="/images/backprev.png" onMouseOver="this.src='/images/backprevclick.png'" onMouseOut="this.src='/images/backprev.png'">
+							<img onclick="go_setting('/APP_Installation.asp')" align="right" style="cursor:pointer;position:absolute;margin-left:-20px;margin-top:-30px;" title="<#Menu_usb_application#>" src="/images/backprev.png" onMouseOver="this.src='/images/backprevclick.png'" onMouseOut="this.src='/images/backprev.png'">
 						</td>
 					</tr>
 				</table>
@@ -802,9 +717,8 @@ function switchUserType(flag){
 										switchAppStatus(PROTOCOL);
 									}
 								);
-							</script>
-						</div>
-						<span id="ftpPortConflict"></span>
+							</script>			
+						</div>	
 					</td>
 				</tr>										
 
@@ -870,18 +784,10 @@ function switchUserType(flag){
 				<!-- The action buttons of accounts. -->
 				<td width="25%" style="border: 1px solid #222;">
 					<table align="right">
-						<tr id="trAccount" style="display:none;">
+						<tr>
 							<td><div id="createAccountBtn" title="<#AddAccountTitle#>"></div></td>
 							<td><div id="deleteAccountBtn" title="<#DelAccountTitle#>"></div></td>
 							<td><div id="modifyAccountBtn" title="<#ModAccountTitle#>"></div></td>
-						</tr>
-						<tr id="trPMGroup" style="display:none;">
-							<td>
-								<select name="" id="user_type" class="input_option" onchange="switchUserType(this.value);">
-									<option value="group"><#Permission_Management_Groups#></option>
-									<option value="account"><#Permission_Management_Users#></option>
-								</select>
-							</td>
 						</tr>
 					</table>
 		  		</td>

@@ -16,9 +16,10 @@
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program (see the file COPYING included with this
+ *  distribution); if not, write to the Free Software Foundation, Inc.,
+ *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
 #ifdef HAVE_CONFIG_H
@@ -31,7 +32,7 @@
 
 #include "compat.h"
 
-#ifdef _WIN32
+#ifdef WIN32
 
 #include <windows.h>
 #include <string.h>
@@ -47,35 +48,32 @@
 int
 inet_pton(int af, const char *src, void *dst)
 {
-    struct sockaddr_storage ss;
-    int size = sizeof(ss);
-    char src_copy[INET6_ADDRSTRLEN+1];
+  struct sockaddr_storage ss;
+  int size = sizeof(ss);
+  char src_copy[INET6_ADDRSTRLEN+1];
 
-    ZeroMemory(&ss, sizeof(ss));
-    /* stupid non-const API */
-    strncpy(src_copy, src, INET6_ADDRSTRLEN+1);
-    src_copy[INET6_ADDRSTRLEN] = 0;
+  ZeroMemory(&ss, sizeof(ss));
+  /* stupid non-const API */
+  strncpy (src_copy, src, INET6_ADDRSTRLEN+1);
+  src_copy[INET6_ADDRSTRLEN] = 0;
 
-    if (WSAStringToAddress(src_copy, af, NULL, (struct sockaddr *)&ss, &size) == 0)
-    {
-        switch (af)
-        {
-            case AF_INET:
-                *(struct in_addr *)dst = ((struct sockaddr_in *)&ss)->sin_addr;
-                return 1;
-
-            case AF_INET6:
-                *(struct in6_addr *)dst = ((struct sockaddr_in6 *)&ss)->sin6_addr;
-                return 1;
-        }
+  if (WSAStringToAddress(src_copy, af, NULL, (struct sockaddr *)&ss, &size) == 0) {
+    switch(af) {
+      case AF_INET:
+	*(struct in_addr *)dst = ((struct sockaddr_in *)&ss)->sin_addr;
+	return 1;
+      case AF_INET6:
+	*(struct in6_addr *)dst = ((struct sockaddr_in6 *)&ss)->sin6_addr;
+	return 1;
     }
-    return 0;
+  }
+  return 0;
 }
 
-#else  /* ifdef _WIN32 */
+#else
 
 #error no emulation for inet_ntop
 
-#endif /* ifdef _WIN32 */
+#endif
 
-#endif /* ifndef HAVE_INET_PTON */
+#endif

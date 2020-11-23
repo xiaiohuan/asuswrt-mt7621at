@@ -599,14 +599,9 @@ function getChangedPermission(selectedObj){
 	var folderObj = document.getElementById("d"+selectedBarCode);
 	var radioName = "g"+selectedBarCode;
 	var permission, orig_permission;
-
-	if(select_flag == "group"){
-		if(!this.selectedAccount)
-			this.selectedAccount = "Administrator";
-	}else{
-		if(!this.selectedAccount)
-			this.selectedAccount = "guest";
-	}
+	
+	if(!this.selectedAccount)
+		this.selectedAccount = "guest";
 
 	if(selectedlayer == 2)
 		setSelectedPoolOrder(selectedObj.id);

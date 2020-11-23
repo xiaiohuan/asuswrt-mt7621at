@@ -14,14 +14,12 @@
 <style type="text/css"> 
 	div.wrapper { margin: 0 auto; width: 730px;}
 	td.sidenav { width:200px;}
-	body {font-family: Verdana, Tohoma, Arial, Helvetica, MS UI Gothic, MS P Gothic, sans-serif;padding:0;margin:0;}
+	body {font-family: Verdana, Tohoma, Arial, Helvetica, sans-serif;padding:0;margin:0;}
 	.wrapperDesc { margin: 0 auto; width: 570px;}
 </style> 
 <script type="text/javascript" src="/state.js"></script>
 <script type="text/javascript" src="/popup.js"></script>
 <script type="text/javascript" src="/help.js"></script>
-<script type="text/javascript" src="/js/jquery.js"></script>
-<script type="text/javascript" src="/js/httpApi.js"></script>
 <style type="text/css">
 .printerServer_table{
 	width:740px;
@@ -29,6 +27,8 @@
 	padding-top:20px; 
 	margin-top:-16px; 
 	position:relative;
+	background-color:#4d595d;
+	align:left;
 	-webkit-border-radius: 3px;
 	-moz-border-radius: 3px;
 	border-radius: 3px;
@@ -68,12 +68,7 @@
 <script>
 function initial(){
 	show_menu();
-	//id="faq" href="https://www.asus.com/US/support/FAQ/114046"
-        httpApi.faqURL("114046", function(url){document.getElementById("faq1").href=url;});
-	//id="faq" href="https://www.asus.com/US/support/FAQ/114024"
-        httpApi.faqURL("114024", function(url){document.getElementById("faq2").href=url;});
-	//id="faq" href="https://www.asus.com/US/support/FAQ/113661"
-        httpApi.faqURL("113661", function(url){document.getElementById("faq3").href=url;});
+	//setTimeout("showMethod('','none');", 100);
 }
 
 function showMethod(flag1, flag2){
@@ -124,7 +119,7 @@ function showMethod(flag1, flag2){
 		<br>
 
 <!--=====Beginning of Main Content=====-->
-<div class="printerServer_table content_bg" id="FormTitle">
+<div class="printerServer_table" id="printerServer_table">
 <table>
   <tr>
   	<td class="formfonttitle"><#Network_Printer_Server#>
@@ -150,14 +145,14 @@ function showMethod(flag1, flag2){
 										<div class="">
 											<ul class="">
 												<li>
-													<a id="faq1" href="" target="_blank" style="text-decoration:underline;font-size:14px;font-weight:bolder;color:#FFF"><#asus_ez_print_share#> FAQ</a>&nbsp;&nbsp;
-													<a href="http://dlcdnet.asus.com/pub/ASUS/LiveUpdate/Release/Wireless/Printer.zip" style="text-decoration:underline;font-size:14px;font-weight:bolder;color:#FC0"><#Download_now#></a>
+														<a id="faq1" href="https://www.asus.com/support/FAQ/114046/" target="_blank" style="text-decoration:underline;font-size:14px;font-weight:bolder;color:#FFF"><#asus_ez_print_share#> FAQ</a>&nbsp;&nbsp;
+														<a href="http://dlcdnet.asus.com/pub/ASUS/LiveUpdate/Release/Wireless/Printer.zip" style="text-decoration:underline;font-size:14px;font-weight:bolder;color:#FC0">Download Now!</a>
 												</li>
 												<li style="margin-top:10px;">
-													<a id="faq2" href="" target="_blank" style="text-decoration:underline;font-size:14px;font-weight:bolder;color:#FFF"><#LPR_print_share#> FAQ (Windows)</a>&nbsp;&nbsp;
+														<a id="faq2" href="https://www.asus.com/support/FAQ/114024/" target="_blank" style="text-decoration:underline;font-size:14px;font-weight:bolder;color:#FFF"><#LPR_print_share#> FAQ (Windows)</a>&nbsp;&nbsp;
 												</li>
 												<li style="margin-top:10px;">
-													<a id="faq3" href="" target="_blank" style="text-decoration:underline;font-size:14px;font-weight:bolder;color:#FFF"><#LPR_print_share#> FAQ (MAC)</a>&nbsp;&nbsp;
+														<a id="faq3" href="https://www.asus.com/support/FAQ/113661/" target="_blank" style="text-decoration:underline;font-size:14px;font-weight:bolder;color:#FFF"><#LPR_print_share#> FAQ (MAC)</a>&nbsp;&nbsp;
 												</li>
 											</ul>	
 										</div>	

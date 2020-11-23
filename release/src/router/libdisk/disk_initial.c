@@ -24,6 +24,9 @@
 #include <dirent.h>
 #include <bcmnvram.h>
 
+// From BusyBox and get volume's label.
+#include <autoconf.h>
+#include <volume_id_internal.h>
 #include <shared.h>
 
 #include "usb_info.h"
@@ -179,20 +182,20 @@ extern disk_info_t *create_disk(const char *device_name, disk_info_t **new_disk_
 #endif
 			){
 		// Get USB node.
-		if(get_usb_node_by_device(device_name, usb_node, 32) == NULL){
+		if(get_usb_node_by_device(device_name, usb_node, sizeof(usb_node)) == NULL){
 			usb_dbg("(%s): Fail to get usb node.\n", device_name);
 			free_disk_data(&follow_disk_info);
 			return NULL;
 		}
 
-		if(get_path_by_node(usb_node, port_path, 8) == NULL){
+		if(get_path_by_node(usb_node, port_path, sizeof(port_path)) == NULL){
 			usb_dbg("(%s): Fail to get usb path.\n", usb_node);
 			free_disk_data(&follow_disk_info);
 			return NULL;
 		}
 
 		// Get USB port.
-		if(get_usb_port_by_string(usb_node, buf, 64) == NULL){
+		if(get_usb_port_by_string(usb_node, buf, sizeof(buf)) == NULL){
 			usb_dbg("Fail to get usb port: %s.\n", usb_node);
 			free_disk_data(&follow_disk_info);
 			return NULL;
@@ -212,7 +215,7 @@ extern disk_info_t *create_disk(const char *device_name, disk_info_t **new_disk_
 		}
 
 		// start get vendor.
-		get_disk_vendor(device_name, buf, 64);
+		get_disk_vendor(device_name, buf, sizeof(buf));
 
 		len = strlen(buf);
 		if(len > 0){
@@ -230,7 +233,7 @@ extern disk_info_t *create_disk(const char *device_name, disk_info_t **new_disk_
 		}
 
 		// start get model.
-		get_disk_model(device_name, buf, 64);
+		get_disk_model(device_name, buf, sizeof(buf));
 
 		len = strlen(buf);
 		if(len > 0){
@@ -567,9 +570,8 @@ extern int is_partition_name(const char *device_name, u32 *partition_order){
 	if(isMMCDevice(device_name))
 		// SD card: mmcblk0p1.
 		order = (u32)strtol(device_name+8, NULL, 10);
-	else
+	else // sda1.
 #endif
-		// sda1.
 		order = (u32)strtol(device_name+3, NULL, 10);
 	if(order <= 0 || order == LONG_MIN || order == LONG_MAX)
 		return 0;
@@ -584,35 +586,52 @@ extern int is_partition_name(const char *device_name, u32 *partition_order){
 }
 
 int find_partition_label(const char *dev_name, char *label){
+	struct volume_id id;
 	char dev_path[128];
 	char usb_port[32];
 	char nvram_label[32], nvram_value[512];
-	int ret;
 
-	if (label) *label = 0;
+	if(label) *label = 0;
 
 	memset(usb_port, 0, sizeof(usb_port));
-	if (get_usb_port_by_device(dev_name, usb_port, sizeof(usb_port)) == NULL)
+	if(get_usb_port_by_device(dev_name, usb_port, sizeof(usb_port)) == NULL)
 		return 0;
 
 	snprintf(nvram_label, sizeof(nvram_label), "usb_path_%s_label", dev_name);
 	strlcpy(nvram_value, nvram_safe_get(nvram_label), sizeof(nvram_value));
-	if (*nvram_value)
-		goto ret;
+	if(*nvram_value){
+		strcpy(label, nvram_value);
+
+		return (label && *label != 0);
+	}
 
 	snprintf(dev_path, sizeof(dev_path), "/dev/%s", dev_name);
-	ret = find_label_or_uuid(dev_path, nvram_value, NULL);
-	if (ret < 0)
+	memset(&id, 0x00, sizeof(id));
+	if((id.fd = open(dev_path, O_RDONLY)) < 0)
 		return 0;
 
-	if (ret == 0)
-		strcpy(nvram_value, " ");
-	nvram_set(nvram_label, nvram_value);
+	volume_id_get_buffer(&id, 0, SB_BUFFER_SIZE);
+
+	if(volume_id_probe_linux_swap(&id) == 0 || id.error)
+		goto ret;
+	if(volume_id_probe_ext(&id) == 0 || id.error)
+		goto ret;
+	if(volume_id_probe_vfat(&id) == 0 || id.error)
+		goto ret;
+	if(volume_id_probe_ntfs(&id) == 0 || id.error)
+		goto ret;
+	if(volume_id_probe_hfs_hfsplus(&id) == 0 || id.error)
+		goto ret;
 
 ret:
-	if (label)
-		strcpy(label, nvram_value);
-	return (label && *label);
+	volume_id_free_buffer(&id);
+	if(label && (*id.label != 0))
+		strcpy(label, id.label);
+	else
+		strcpy(label, " ");
+	nvram_set(nvram_label, label);
+	close(id.fd);
+	return (label && *label != 0);
 }
 
 extern partition_info_t *create_partition(const char *device_name, partition_info_t **new_part_info){

@@ -1,24 +1,15 @@
 #!/bin/sh
-# $1: action.
-# environment variable: unit - modem unit.
+# $1: type.
 # echo "This is a script to get the modem status."
 
 
-if [ -z "$unit" ] || [ "$unit" -eq "0" ]; then
-	prefix="usb_modem_"
-else
-	prefix="usb_modem${unit}_"
-fi
-
-model=`nvram get productid`
-act_node1="${prefix}act_int"
-act_node2="${prefix}act_bulk"
-modem_act_path=`nvram get ${prefix}act_path`
-modem_type=`nvram get ${prefix}act_type`
-modem_vid=`nvram get ${prefix}act_vid`
-modem_pid=`nvram get ${prefix}act_pid`
-modem_dev=`nvram get ${prefix}act_dev`
-modem_pdp=`nvram get modem_pdp`
+act_node1="usb_modem_act_int"
+act_node2="usb_modem_act_bulk"
+modem_act_path=`nvram get usb_modem_act_path`
+modem_type=`nvram get usb_modem_act_type`
+modem_vid=`nvram get usb_modem_act_vid`
+modem_pid=`nvram get usb_modem_act_pid`
+modem_dev=`nvram get usb_modem_act_dev`
 modem_reg_time=`nvram get modem_reg_time`
 wandog_interval=`nvram get wandog_interval`
 sim_order=`nvram get modem_sim_order`
@@ -38,10 +29,6 @@ if [ -z "$modem_data_orig" ]; then
 fi
 
 jffs_dir="/jffs"
-
-if [ "$wandog_interval" == "" -o "$wandog_interval" == "0" ]; then
-	wandog_interval=5
-fi
 
 
 _find_usb3_path(){
@@ -159,7 +146,7 @@ if [ "$modem_type" == "" -o  "$modem_type" == "ecm" -o "$modem_type" == "rndis" 
 fi
 
 act_node=
-#modem_type=`nvram get ${prefix}act_type`
+#modem_type=`nvram get usb_modem_act_type`
 #if [ "$modem_type" == "tty" -o "$modem_type" == "mbim" ]; then
 #	if [ "$modem_type" == "tty" -a "$modem_vid" == "6610" ]; then # e.q. ZTE MF637U
 #		act_node=$act_node1
@@ -367,7 +354,7 @@ elif [ "$1" == "sim" ]; then
 	fi
 
 	modem_enable=`nvram get modem_enable`
-	simdetect=`nvram get ${prefix}act_simdetect`
+	simdetect=`nvram get usb_modem_act_simdetect`
 	if [ -z "$simdetect" ]; then
 		/usr/sbin/modem_status.sh simdetect >&/dev/null
 	fi
@@ -412,9 +399,9 @@ elif [ "$1" == "sim" ]; then
 		act_sim=-10
 	fi
 
-	act_sim_orig=`nvram get ${prefix}act_sim`
+	act_sim_orig=`nvram get usb_modem_act_sim`
 	if [ "$act_sim_orig" != "$act_sim" ]; then
-		nvram set ${prefix}act_sim=$act_sim
+		nvram set usb_modem_act_sim=$act_sim
 	fi
 
 	echo "done."
@@ -459,7 +446,7 @@ elif [ "$1" == "signal" ]; then
 		exit 4
 	fi
 
-	nvram set ${prefix}act_signal=$signal
+	nvram set usb_modem_act_signal=$signal
 
 	echo "$signal"
 	echo "done."
@@ -565,14 +552,14 @@ elif [ "$1" == "fullsignal" ]; then
 		echo "operation=$operation"
 		echo "signal=$signal"
 
-		nvram set ${prefix}act_cellid=$cellid
-		nvram set ${prefix}act_lac=$lac
-		nvram set ${prefix}act_rsrq=$rsrq
-		nvram set ${prefix}act_rsrp=$rsrp
-		nvram set ${prefix}act_rssi=$rssi
-		nvram set ${prefix}act_sinr=$sinr
-		nvram set ${prefix}act_operation="$operation"
-		nvram set ${prefix}act_signal=$signal
+		nvram set usb_modem_act_cellid=$cellid
+		nvram set usb_modem_act_lac=$lac
+		nvram set usb_modem_act_rsrq=$rsrq
+		nvram set usb_modem_act_rsrp=$rsrp
+		nvram set usb_modem_act_rssi=$rssi
+		nvram set usb_modem_act_sinr=$sinr
+		nvram set usb_modem_act_operation="$operation"
+		nvram set usb_modem_act_signal=$signal
 
 		echo "done."
 	fi
@@ -623,7 +610,7 @@ elif [ "$1" == "operation" ]; then
 			exit 6
 		fi
 
-		nvram set ${prefix}act_operation="$operation"
+		nvram set usb_modem_act_operation="$operation"
 
 		echo "$operation"
 		echo "done."
@@ -639,9 +626,9 @@ elif [ "$1" == "provider" ]; then
 
 		isp_long=`echo -n "$at_cgnws" |awk 'BEGIN{FS=","}{print $8}' 2>/dev/null`
 		if [ -n "$isp_long" ]; then
-			nvram set ${prefix}act_provider="$isp_long"
+			nvram set usb_modem_act_provider="$isp_long"
 		else
-			nvram set ${prefix}act_provider=""
+			nvram set usb_modem_act_provider=""
 		fi
 
 		echo "provider=$isp_long"
@@ -711,7 +698,7 @@ elif [ "$1" == "imsi" ]; then
 		exit 11
 	fi
 
-	nvram set ${prefix}act_imsi=$ret
+	nvram set usb_modem_act_imsi=$ret
 
 	if [ "$is_gobi" -eq "1" ]; then
 		sim_num=`nvram get modem_sim_num`
@@ -795,7 +782,7 @@ elif [ "$1" == "imei" ]; then
 		exit 12
 	fi
 
-	nvram set ${prefix}act_imei=$ret
+	nvram set usb_modem_act_imei=$ret
 
 	echo "done."
 elif [ "$1" == "iccid" ]; then
@@ -808,7 +795,7 @@ elif [ "$1" == "iccid" ]; then
 			exit 13
 		fi
 
-		nvram set ${prefix}act_iccid=$ret
+		nvram set usb_modem_act_iccid=$ret
 
 		echo "done."
 	fi
@@ -824,8 +811,8 @@ elif [ "$1" == "rate" ]; then
 			exit 14
 		fi
 
-		nvram set ${prefix}act_tx=$max_tx
-		nvram set ${prefix}act_rx=$max_rx
+		nvram set usb_modem_act_tx=$max_tx
+		nvram set usb_modem_act_rx=$max_rx
 
 		echo "done."
 	fi
@@ -835,32 +822,27 @@ elif [ "$1" == "hwver" ]; then
 		at_ret=`/usr/sbin/modem_at.sh '$HWVER' 1 2>&1`
 		ret=`echo -n "$at_ret" |grep "^[0-9].*$" 2>/dev/null`
 		if [ -z "$ret" ]; then
-			nvram set ${prefix}act_hwver=
+			nvram set usb_modem_act_hwver=
 			echo "Fail to get the hardware version from $modem_act_node."
 			exit 15
 		fi
 
-		nvram set ${prefix}act_hwver=$ret
+		nvram set usb_modem_act_hwver=$ret
 
 		echo "done."
 	fi
 elif [ "$1" == "swver" ]; then
 	if [ "$is_gobi" -eq "1" ]; then
 		echo -n "Getting SWVER..."
-		if [ "$model" == "4G-AC53U" ]; then
-			at_ret=`/usr/sbin/modem_at.sh I 1 2>&1 | grep Revision:`
-			ret=`echo -n "$at_ret" |awk '{print $2}'`
-		else
-			at_ret=`/usr/sbin/modem_at.sh I 1 2>&1`
-			ret=`echo -n "$at_ret" |grep "^WW" 2>/dev/null`
-		fi
+		at_ret=`/usr/sbin/modem_at.sh I 1 2>&1`
+		ret=`echo -n "$at_ret" |grep "^WW" 2>/dev/null`
 		if [ -z "$ret" ]; then
-			nvram set ${prefix}act_swver=
+			nvram set usb_modem_act_swver=
 			echo "Fail to get the software version from $modem_act_node."
 			exit 15
 		fi
 
-		nvram set ${prefix}act_swver=$ret
+		nvram set usb_modem_act_swver=$ret
 
 		echo "done."
 	fi
@@ -874,7 +856,7 @@ elif [ "$1" == "band" ]; then
 			exit 16
 		fi
 
-		nvram set ${prefix}act_band="$ret"
+		nvram set usb_modem_act_band="$ret"
 
 		echo "done."
 	fi
@@ -932,7 +914,7 @@ elif [ "$1" == "scan" ]; then
 	echo "Start to scan the stations:"
 	modem_roaming_scantime=`nvram get modem_roaming_scantime`
 	modem_roaming_scanlist=`nvram get modem_roaming_scanlist`
-	nvram set ${prefix}act_scanning=2
+	nvram set usb_modem_act_scanning=2
 	at_ret=`/usr/sbin/modem_at.sh '+COPS=2' "$modem_reg_time" 2>&1`
 	ret=`echo -n "$at_ret" |grep "OK" 2>/dev/null`
 
@@ -940,11 +922,9 @@ elif [ "$1" == "scan" ]; then
 	at_ret=`/usr/sbin/modem_at.sh '+COPS=?' $modem_roaming_scantime 2>&1`
 	ret=`echo -n "$at_ret" |grep '+COPS: ' |awk 'BEGIN{FS=": "}{print $2}' |awk 'BEGIN{FS=",,"}{print $1}' 2>/dev/null`
 	echo "Finish the scan."
-	nvram set ${prefix}act_scanning=1
+	nvram set usb_modem_act_scanning=1
 	if [ -z "$ret" ]; then
 		echo "17:Fail to scan the stations."
-		nvram set ${prefix}act_scanning=0
-		nvram set freeze_duck=$wandog_interval
 		exit 17
 	fi
 
@@ -952,8 +932,6 @@ elif [ "$1" == "scan" ]; then
 	num=`echo -n "$ret" |awk 'BEGIN{FS=")"}{print NF}' 2>/dev/null`
 	if [ -z "$num" ]; then
 		echo "18:Fail to count the stations."
-		nvram set ${prefix}act_scanning=0
-		nvram set freeze_duck=$wandog_interval
 		exit 18
 	fi
 
@@ -994,7 +972,7 @@ elif [ "$1" == "scan" ]; then
 	done
 	list=$list"]"
 	echo -n "$list" > $modem_roaming_scanlist
-	nvram set ${prefix}act_scanning=0
+	nvram set usb_modem_act_scanning=0
 	nvram set freeze_duck=$wandog_interval
 
 	echo "done."
@@ -1015,9 +993,9 @@ elif [ "$1" == "station" ]; then
 	echo "done."
 elif [ "$1" == "simauth" ]; then
 	if [ "$is_gobi" -eq "1" ]; then
-		nvram set ${prefix}act_auth=
-		nvram set ${prefix}act_auth_pin=
-		nvram set ${prefix}act_auth_puk=
+		nvram set usb_modem_act_auth=
+		nvram set usb_modem_act_auth_pin=
+		nvram set usb_modem_act_auth_puk=
 		at_ret=`/usr/sbin/modem_at.sh '+CPINR' 1 2>&1`
 		str=`echo -n "$at_ret" |grep "+CPINR:" |awk 'BEGIN{FS=":"}{print $2}' 2>/dev/null`
 		if [ -z "$str" ]; then
@@ -1030,7 +1008,7 @@ elif [ "$1" == "simauth" ]; then
 			echo "Fail to get the SIM auth state."
 			exit 21
 		fi
-		nvram set ${prefix}act_auth=$ret
+		nvram set usb_modem_act_auth=$ret
 		if [ "$ret" == "1" ]; then
 			echo "SIM auth state is ENABLED_NOT_VERIFIED."
 		elif [ "$ret" == "2" ]; then
@@ -1050,7 +1028,7 @@ elif [ "$1" == "simauth" ]; then
 			echo "Fail to get the PIN retry."
 			exit 22
 		fi
-		nvram set ${prefix}act_auth_pin=$ret
+		nvram set usb_modem_act_auth_pin=$ret
 		echo "SIM PIN retry is $ret."
 
 		ret=`echo -n "$str" |awk 'BEGIN{FS=","}{print $5}' 2>/dev/null`
@@ -1058,7 +1036,7 @@ elif [ "$1" == "simauth" ]; then
 			echo "Fail to get the PUK retry."
 			exit 23
 		fi
-		nvram set ${prefix}act_auth_puk=$ret
+		nvram set usb_modem_act_auth_puk=$ret
 
 		echo "SIM PUK retry is $ret."
 		echo "done."
@@ -1103,7 +1081,7 @@ elif [ "$1" == "simpuk" ]; then
 	echo "done."
 elif [ "$1" == "lockpin" ]; then
 	# $2: 1, lock; 0, unlock. $3: the original PIN.
-	simauth=`nvram get ${prefix}act_auth`
+	simauth=`nvram get usb_modem_act_auth`
 	if [ "$simauth" == "1" ]; then
 		echo "29:SIM need to input the PIN code first."
 		exit 29
@@ -1183,7 +1161,7 @@ elif [ "$1" == "gnws" ]; then
 		mnc=`echo -n "$at_cgnws" |awk 'BEGIN{FS=","}{print $6}' 2>/dev/null`
 		spn=`echo -n "$at_cgnws" |awk 'BEGIN{FS=","}{print $7}' 2>/dev/null`
 		isp_long=`echo -n "$at_cgnws" |awk 'BEGIN{FS=","}{print $8}' 2>/dev/null`
-		isp_short=`echo -n "$at_cgnws" |awk 'BEGIN{FS=","}{print $9}' |awk 'BEGIN{FS=" "}{print $1}' 2>/dev/null`
+		isp_short=`echo -n "$at_cgnws" |awk 'BEGIN{FS=","}{print $9}' 2>/dev/null`
 
 		echo "   Roaming=$roaming."
 		echo "    Signal=$signal."
@@ -1248,7 +1226,7 @@ elif [ "$1" == "simdetect" ]; then
 
 		if [ -z "$2" ]; then
 			echo "$current"
-			nvram set ${prefix}act_simdetect=$current
+			nvram set usb_modem_act_simdetect=$current
 		elif [ "$2" == "1" -a "$current" == "0" ] || [ "$2" == "0" -a "$current" == "1" ]; then
 			at_ret=`/usr/sbin/modem_at.sh '$NV70210='$2 2>&1`
 			ret=`echo -n $at_ret |grep "OK" 2>/dev/null`
@@ -1256,7 +1234,7 @@ elif [ "$1" == "simdetect" ]; then
 				echo "45:Fail to set the SIM detect to be $2."
 				exit 45
 			fi
-			nvram set ${prefix}act_simdetect=$2
+			nvram set usb_modem_act_simdetect=$2
 
 			# Use reboot to replace this.
 			#at_ret=`/usr/sbin/modem_at.sh '+CFUN=1,1' 2>&1`
@@ -1278,7 +1256,7 @@ elif [ "$1" == "number" ]; then
 		exit 47
 	fi
 
-	nvram set ${prefix}act_num=$ret
+	nvram set usb_modem_act_num=$ret
 
 	echo "done."
 elif [ "$1" == "smsc" ]; then
@@ -1292,14 +1270,12 @@ elif [ "$1" == "smsc" ]; then
 
 	smsc=`echo -n "$ret" |awk 'BEGIN{FS="\""}{print $2}' 2>/dev/null`
 
-	nvram set ${prefix}act_smsc=$smsc
+	nvram set usb_modem_act_smsc=$smsc
 
 	echo "smsc=$smsc."
 	echo "done."
 elif [ "$1" == "ip" ]; then
 	if [ "$is_gobi" -eq "1" ]; then
-		ip=
-		ipv6=
 		echo "Getting IP..."
 		at_ret=`/usr/sbin/modem_at.sh '+CGPADDR=1' 1 2>&1`
 		ret=`echo -n "$at_ret" |grep "+CGPADDR: 1," 2>/dev/null`
@@ -1308,21 +1284,11 @@ elif [ "$1" == "ip" ]; then
 			exit 48
 		fi
 
-		if [ "$modem_pdp" != "2" ]; then
-			ip=`echo -n "$ret" |awk 'BEGIN{FS=","}{print $2}' 2>/dev/null`
-		fi
+		ip=`echo -n "$ret" |awk 'BEGIN{FS=","}{print $2}' 2>/dev/null`
 
-		if [ "$modem_pdp" == "2" ]; then
-			ipv6=`echo -n "$ret" |awk 'BEGIN{FS=","}{print $2}' 2>/dev/null`
-		elif [ "$modem_pdp" == "3" ]; then
-			ipv6=`echo -n "$ret" |awk 'BEGIN{FS=","}{print $3}' 2>/dev/null`
-		fi
-
-		nvram set ${prefix}act_ip=$ip
-		nvram set ${prefix}act_ipv6=$ipv6
+		nvram set usb_modem_act_ip=$ip
 
 		echo "ip=$ip."
-		echo "ipv6=$ipv6."
 		echo "done."
 	fi
 fi

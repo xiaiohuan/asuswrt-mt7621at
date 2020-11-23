@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2010 OpenVPN Technologies, Inc. <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -16,9 +16,10 @@
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program (see the file COPYING included with this
+ *  distribution); if not, write to the Free Software Foundation, Inc.,
+ *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
 /*
@@ -66,27 +67,16 @@
  */
 #define STACK_N               64
 
-void perf_push(int type);
+void perf_push (int type);
+void perf_pop (void);
+void perf_output_results (void);
 
-void perf_pop(void);
+#else
 
-void perf_output_results(void);
+static inline void perf_push (int type) {}
+static inline void perf_pop (void) {}
+static inline void perf_output_results (void) {}
 
-#else  /* ifdef ENABLE_PERFORMANCE_METRICS */
+#endif
 
-static inline void
-perf_push(int type)
-{
-}
-static inline void
-perf_pop(void)
-{
-}
-static inline void
-perf_output_results(void)
-{
-}
-
-#endif /* ifdef ENABLE_PERFORMANCE_METRICS */
-
-#endif /* ifndef PERF_H */
+#endif

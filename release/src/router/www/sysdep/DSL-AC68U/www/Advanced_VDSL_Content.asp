@@ -85,17 +85,10 @@ function chg_pvc_0() {
 	document.form.dsl_subunit.disabled = true;
 	change_dsl_unit_idx(8,0);
 	
-	free_options(document.form.dsl_proto);			//remove beidge while edit Internet PVC
-	var var_item0 = new Option("<#BOP_ctype_title1#>", "dhcp");
-	var var_item1 = new Option("<#BOP_ctype_title5#>", "static");
-	var var_item2 = new Option("PPPoE", "pppoe");
-	document.form.dsl_proto.options.add(var_item0);	
-	document.form.dsl_proto.options.add(var_item1);
-	document.form.dsl_proto.options.add(var_item2);
+	document.form.dsl_proto.options[3] = null;	//remove beidge while edit Internet PVC		
 		
-	document.form.dsl_proto.value ="<% nvram_get("dsl8_proto"); %>";
-	change_dsl_type("<% nvram_get("dsl8_proto"); %>");
-	fixed_change_dsl_type("<% nvram_get("dsl8_proto"); %>");
+	change_dsl_type(document.form.dsl_proto.value);
+	fixed_change_dsl_type(document.form.dsl_proto.value);
 }
 
 function chg_pvc_sub(pvc_to_chg) {
@@ -181,17 +174,8 @@ function add_pvc_0() {
 	enable_all_ctrl();
 	document.form.dsl_subunit.disabled = true;
 	
-	free_options(document.form.dsl_proto);			//remove beidge while edit Internet PVC
-	var var_item0 = new Option("<#BOP_ctype_title1#>", "dhcp");
-	var var_item1 = new Option("<#BOP_ctype_title5#>", "static");
-	var var_item2 = new Option("PPPoE", "pppoe");
-	document.form.dsl_proto.options.add(var_item0);	
-	document.form.dsl_proto.options.add(var_item1);
-	document.form.dsl_proto.options.add(var_item2);	
+	document.form.dsl_proto.options[3] = null;	//remove beidge while edit Internet PVC		
 
-	document.form.dsl_proto.value = "<% nvram_get("dsl8_proto"); %>";
-	if(document.form.dsl_proto.value == "")
-		document.form.dsl_proto.value = "dhcp";
 	change_dsl_type(document.form.dsl_proto.value);
 	fixed_change_dsl_type(document.form.dsl_proto.value);
 }
@@ -285,7 +269,7 @@ function showDSLWANList(){
 							cell[4].style.color = "white";
 
 							cell[5] = addRow.insertCell(5);
-							cell[5].innerHTML = '<center><span style="cursor:pointer;" onclick="chg_pvc_0();"><input class="edit_btn"></span></center>';
+							cell[5].innerHTML = '<center><span style="cursor:pointer;" onclick="chg_pvc_0();"><img src="/images/New_ui/accountedit.png"></span></center>';
 							cell[5].style.color = "white";
 
 							cell[6] = addRow.insertCell(6);
@@ -315,6 +299,7 @@ function showDSLWANList(){
 							cell[4].innerHTML = '<center><img src=images/checked.gif border=0></center>';
 							cell[4].style.color = "white";
 							cell[5] = addRow.insertCell(5);
+							//cell[5].innerHTML = '<center><span style="cursor:pointer;" onclick="chg_pvc_sub('+i.toString()+')"><img src="/images/New_ui/accountedit.png"></span></center>';
 							cell[5].innerHTML = "";
 							cell[5].style.color = "white";
 							cell[6] = addRow.insertCell(6);
@@ -435,6 +420,8 @@ function change_dsl_unit_idx(idx,iptv_row){
 	document.form.dsl_vid.value = DSLWANList[iptv_row][3];
 	document.form.dsl_dot1p.value = DSLWANList[iptv_row][4];
 
+	change_dsl_dhcp_enable();
+	change_dsl_dns_enable();
 	document.getElementById("dslSettings").style.display = "";
 	if (document.form.dsl_proto.value != "bridge") {
 		document.getElementById("IPsetting").style.display = "";
@@ -677,7 +664,6 @@ function change_dsl_type(dsl_type){
 		showhide("PPPsetting",1);
 		inputCtrl(document.form.wan_ppp_echo, 1);
 		ppp_echo_control();
-		inputCtrl(document.form.dhcpc_mode, 0);
 	}
 	else if(dsl_type == "static"){
 		inputCtrl(document.form.dslx_dnsenable[0], 0);
@@ -696,7 +682,6 @@ function change_dsl_type(dsl_type){
 		showhide("PPPsetting",0);
 		inputCtrl(document.form.wan_ppp_echo, 0);
 		ppp_echo_control(0);
-		inputCtrl(document.form.dhcpc_mode, 0);
 	}
 	else if(dsl_type == "dhcp"){
 		inputCtrl(document.form.dslx_dnsenable[0], 1);
@@ -716,7 +701,6 @@ function change_dsl_type(dsl_type){
 		showhide("PPPsetting",0);
 		inputCtrl(document.form.wan_ppp_echo, 0);
 		ppp_echo_control(0);
-		inputCtrl(document.form.dhcpc_mode, 1);
 	}
 	else if(dsl_type == "bridge") {
 		inputCtrl(document.form.dslx_dnsenable[0], 0);
@@ -735,7 +719,6 @@ function change_dsl_type(dsl_type){
 		showhide("PPPsetting",0);
 		inputCtrl(document.form.wan_ppp_echo, 0);
 		ppp_echo_control(0);
-		inputCtrl(document.form.dhcpc_mode, 0);
 	}
 	else {
 		alert("error");
@@ -1022,7 +1005,7 @@ function ppp_echo_control(flag){
 <input type="hidden" name="action_mode" value="apply">
 <input type="hidden" name="action_script" value="restart_dslwan_if 0">
 <input type="hidden" name="action_wait" value="5">
-<input type="hidden" name="preferred_lang" value="<% nvram_get("preferred_lang"); %>">
+<input type="hidden" name="preferred_lang" id="preferred_lang" value="<% nvram_get("preferred_lang"); %>">
 <input type="hidden" name="dsl_unit" value="8" />
 <input type="hidden" name="dsl_subunit" value="" />
 <input type="hidden" name="dsl_enable" value="" />
@@ -1264,7 +1247,7 @@ function ppp_echo_control(flag){
 										</tr>
 										</thead>
 										<th>
-											<a class="hintstyle" href="javascript:void(0);" onClick="openHint(7,4);"><#Username#></a>
+											<a class="hintstyle" href="javascript:void(0);" onClick="openHint(7,4);"><#PPPConnection_UserName_itemname#></a>
 										</th>
 										<td>
 											<input type="text" maxlength="64" class="input_32_table" name="dslx_pppoe_username" value="<% nvram_get("dslx_pppoe_username"); %>" onkeypress="return validator.isString(this, event)" onblur="" autocomplete="off" autocorrect="off" autocapitalize="off">
@@ -1380,17 +1363,6 @@ function ppp_echo_control(flag){
 											<td>
 												<input type="text" name="dslx_hwaddr" class="input_20_table" maxlength="17" value="<% nvram_get("dslx_hwaddr"); %>" onKeyPress="return validator.isHWAddr(this,event)" autocorrect="off" autocapitalize="off">
 												<input type="button" class="button_gen_long" onclick="showMAC();" value="<#BOP_isp_MACclone#>">
-											</td>
-										</tr>
-										<tr>
-											<th>
-												<a class="hintstyle" href="javascript:void(0);" onClick="openHint(7,30);"><#DHCP_query_freq#></a>
-											</th>
-											<td>
-												<select name="dhcpc_mode" class="input_option">
-													<option value="0" <% nvram_match(" dhcpc_mode", "0","selected"); %>><#DHCPnormal#></option>
-													<option value="1" <% nvram_match(" dhcpc_mode", "1","selected"); %>><#DHCPaggressive#></option>
-												</select>
 											</td>
 										</tr>
 									</table>

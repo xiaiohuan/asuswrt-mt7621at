@@ -26,10 +26,6 @@
 #include "hotplug2.h"
 #include "rules.h"
 
-#ifdef HND_ROUTER
-#define inline  
-#endif
-
 
 /**
  * Function supplementing 'mkdir -p'.

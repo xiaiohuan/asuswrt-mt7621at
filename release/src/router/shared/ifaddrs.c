@@ -433,8 +433,9 @@ getifaddrs (struct ifaddrs **ifap)
   size_t dlen, xlen, nlen;
   uint32_t max_ifindex = 0;
 
-  pid_t pid=0;
+  pid_t pid;
   int seq;
+  int result;
   int build;			/* 0 or 1 */
 
 /* ---------------------------------- */
@@ -492,11 +493,13 @@ getifaddrs (struct ifaddrs **ifap)
 	  else
 	    {
 	      free_data (data, ifdata);
+	      result = 0;
 	      break;
 	    }
 	  if (data == NULL || ifdata == NULL)
 	    {
 	      free_data (data, ifdata);
+	      result = -1;
 	      break;
 	    }
 	  ifl = NULL;

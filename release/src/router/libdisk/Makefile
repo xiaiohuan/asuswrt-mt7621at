@@ -7,7 +7,6 @@ ifneq ($(BUILD_NAME),RT-N10U)
 PROGS += test_disk1 test_disk2
 endif
 PROGS += test_share
-#PROGS += test_share2
 ifeq ($(RTCONFIG_WEBDAV),y)
 PROGS += write_webdav_conf
 endif
@@ -17,15 +16,9 @@ CFLAGS += -DBCM_MMC
 endif
 CFLAGS += -fPIC $(EXTRACFLAGS)
 CFLAGS += -I. -I$(TOP)/shared -I$(SRCBASE)/include -I$(KERNEL_HEADER_DIR) -Wall
-#CFLAGS += $(PRIVATE_EXTRACFLAGS)
-LDFLAGS_SO = -L$(TOP)/nvram${BCMEX}${EX7} -lnvram -L$(TOP)/shared -lshared
-ifeq ($(HND_ROUTER),y)
-LDFLAGS_SO += -L$(TOP)/wlcsm -lwlcsm
-LDFLAGS_SO += -lgcc_s
-endif
+LDFLAGS_SO = -L$(TOP)/nvram${BCMEX} -lnvram -L$(TOP)/shared -lshared
 LDFLAGS += $(LDFLAGS_SO) -L. -ldisk
 ifeq ($(RTCONFIG_BCMARM),y)
-CFLAGS += -I$(SRCBASE)/shared/bcmwifi/include -DTYPEDEF_FLOAT_T
 CFLAGS += -I$(SRCBASE)/common/include
 LDFLAGS += -lgcc_s
 endif
@@ -34,29 +27,24 @@ ifeq ($(RTCONFIG_QTN),y)
 LDFLAGS += -L$(TOP)/libqcsapi_client -lqcsapi_client
 endif
 
-ifeq ($(RTCONFIG_QCA),y)
-LDFLAGS += -ldl
-endif
+CFLAGS += -I$(TOP)/busybox/include
+CFLAGS += -I$(TOP)/busybox/util-linux/volume_id
 
-ifeq ($(RTCONFIG_PERMISSION_MANAGEMENT),y)
-CFLAGS += -I$(TOP)/sqlCipher
-CFLAGS += -I$(TOP)/PMS_DBapis
-LDFLAGS += -L$(TOP)/openssl -lcrypto
-LDFLAGS += -L$(TOP)/sqlCipher/.libs -lsqlcipher
-LDFLAGS += -L$(TOP)/PMS_DBapis -lpms_sql
-endif
+ID_OBJS = $(TOP)/busybox/util-linux/volume_id/util2.o
+ID_OBJS += $(TOP)/busybox/util-linux/volume_id/linux_swap.o
+ID_OBJS += $(TOP)/busybox/util-linux/volume_id/ext.o
+ID_OBJS += $(TOP)/busybox/util-linux/volume_id/fat.o
+ID_OBJS += $(TOP)/busybox/util-linux/volume_id/ntfs.o
+ID_OBJS += $(TOP)/busybox/util-linux/volume_id/hfs.o
+#ID_OBJS += libbb_stub.o
 
 #SHARE_STATIC=y
 
 all: $(PROGS)
 
 #libdisk.so: $(OBJS) $(TOP)/shared/shutils.o
-libdisk.so: $(OBJS)
-ifeq ($(HND_ROUTER),y)
-	$(CC) $(LDFLAGS_SO) -shared -o $@ $^
-else
+libdisk.so: $(OBJS) $(ID_OBJS)
 	$(LD) $(LDFLAGS_SO) -shared -o $@ $^
-endif
 
 write_smb_conf: write_smb_conf.o libdisk.so
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
@@ -72,7 +60,7 @@ test_of_var_files: libdisk.so test_share
 test_disk1: test_disk1.o libdisk.so
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
 
-test_disk2: test_disk2.o
+test_disk2: test_disk2.o $(ID_OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
 
 ifeq ($(SHARE_STATIC),y)
@@ -84,10 +72,6 @@ test_share: test_share.o libdisk.so
 	@echo Got lib.
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
 endif
-
-infos:
-	@echo INSTALLDIR=$(INSTALLDIR)
-	install -D libdisk.so $(INSTALLDIR)/lib/libdisk.so
 
 install: all
 	$(STRIP) $(PROGS)
@@ -105,6 +89,7 @@ endif
 	cd $(INSTALLDIR)/sbin && ln -sf test_share test_of_var_files
 
 	# test
+	cd $(INSTALLDIR)/sbin && ln -sf test_share get_account_list
 	cd $(INSTALLDIR)/sbin && ln -sf test_share get_folder_list
 	cd $(INSTALLDIR)/sbin && ln -sf test_share get_all_folder
 	cd $(INSTALLDIR)/sbin && ln -sf test_share get_var_file_name
@@ -123,14 +108,6 @@ endif
 	cd $(INSTALLDIR)/sbin && ln -sf test_share del_account
 	cd $(INSTALLDIR)/sbin && ln -sf test_share mod_account
 	cd $(INSTALLDIR)/sbin && ln -sf test_share test_if_exist_account
-ifeq ($(RTCONFIG_PERMISSION_MANAGEMENT),y)
-	cd $(INSTALLDIR)/sbin && ln -sf test_share add_group
-	cd $(INSTALLDIR)/sbin && ln -sf test_share del_group
-	cd $(INSTALLDIR)/sbin && ln -sf test_share mod_group
-	cd $(INSTALLDIR)/sbin && ln -sf test_share test_if_exist_group
-else
-	cd $(INSTALLDIR)/sbin && ln -sf test_share get_account_list
-endif
 
 	cd $(INSTALLDIR)/sbin && ln -sf test_share add_folder
 	cd $(INSTALLDIR)/sbin && ln -sf test_share del_folder

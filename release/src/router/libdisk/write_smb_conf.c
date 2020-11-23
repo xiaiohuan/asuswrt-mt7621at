@@ -31,12 +31,7 @@
 
 #include <linux/version.h>
 
-#ifdef RTCONFIG_PERMISSION_MANAGEMENT
-#include <PMS_DBAPIs.h>
-#endif
-
 #define SAMBA_CONF "/etc/smb.conf"
-//#define SAMBA_CONF "/etc/test.conf"
 
 /* @return:
  * 	If mount_point is equal to one of partition of all disks case-insensitivity, return true.
@@ -194,37 +189,19 @@ int get_list_strings_count(char **list, int size, char *str)
 int main(int argc, char *argv[])
 {
 	FILE *fp;
-	int n=0, spnego = 0;
+	int n=0;
 	char p_computer_name[16]; // computer_name's len is CKN_STR15.
 	disk_info_t *follow_disk, *disks_info = NULL;
 	partition_info_t *follow_partition;
 	char *mount_folder;
-	int samba_right;
+	int result, node_layer, samba_right;
 	int sh_num;
 	char **folder_list = NULL;
-	int acc_num, first;
-#if defined(RTCONFIG_SOC_IPQ8074) || defined(RTCONFIG_SOC_IPQ8064)
-	int max_user = 32;
-#endif
-#ifdef RTCONFIG_PERMISSION_MANAGEMENT
-	PMS_ACCOUNT_INFO_T *account_list, *follow_account;
-	int group_num;
-	PMS_ACCOUNT_GROUP_INFO_T *group_list;
-	PMS_OWNED_INFO_T *owned_group;
-	PMS_ACCOUNT_GROUP_INFO_T *group_member;
-	int samba_right_group;
-	char char_user[64];
-#else
+	int acc_num;
 	char **account_list;
-	int i;
-#endif
 	int dup, same_m_pt = 0;
 	char unique_share_name[PATH_MAX];
 	int st_samba_mode = nvram_get_int("st_samba_mode");
-
-#if defined(RTCONFIG_SAMBA36X)
-	spnego = 1;
-#endif
 
 	unlink("/var/log.samba");
 
@@ -263,15 +240,9 @@ int main(int argc, char *argv[])
 	fprintf(fp, "passdb backend = smbpasswd\n");
 	fprintf(fp, "smb passwd file = /etc/samba/smbpasswd\n");
 #endif
-#if defined(RTCONFIG_SAMBA36X)
-	fprintf(fp, "username level = 20\n");
-#endif
 
 	fprintf(fp, "unix charset = UTF8\n");		// ASUS add
 	fprintf(fp, "display charset = UTF8\n");	// ASUS add
-	fprintf(fp, "load printers = no\n");	//Andy Chiu, 2017/1/20. Add for Samba printcap issue.
-	fprintf(fp, "printing = bsd\n");
-	fprintf(fp, "printcap name = /dev/null\n");
 	fprintf(fp, "log file = /var/log.samba\n");
 	fprintf(fp, "log level = 0\n");
 	fprintf(fp, "max log size = 5\n");
@@ -290,14 +261,14 @@ int main(int argc, char *argv[])
 //#if defined(RTCONFIG_TFAT) || defined(RTCONFIG_TUXERA_NTFS) || defined(RTCONFIG_TUXERA_HFS)
 		if(nvram_get_int("enable_samba_tuxera") == 1){
 			fprintf(fp, "auth methods = guest\n");
-			fprintf(fp, "guest account = %s\n", nvram_get("http_username")? : "admin");
+			fprintf(fp, "guest account = admin\n");
 			fprintf(fp, "map to guest = Bad Password\n");
 			fprintf(fp, "guest ok = yes\n");
 		}
 		else{
 #if defined(RTCONFIG_SAMBA36X)
 			fprintf(fp, "auth methods = guest\n");
-			fprintf(fp, "guest account = %s\n", nvram_get("http_username")? : "admin");
+			fprintf(fp, "guest account = admin\n");
 			fprintf(fp, "map to guest = Bad Password\n");
 			fprintf(fp, "guest ok = yes\n");
 #else
@@ -308,7 +279,7 @@ int main(int argc, char *argv[])
 #else
 #if defined(RTCONFIG_SAMBA36X)
 		fprintf(fp, "auth methods = guest\n");
-		fprintf(fp, "guest account = %s\n", nvram_get("http_username")? : "admin");
+		fprintf(fp, "guest account = admin\n");
 		fprintf(fp, "map to guest = Bad Password\n");
 		fprintf(fp, "guest ok = yes\n");
 #else
@@ -330,21 +301,12 @@ int main(int argc, char *argv[])
 	fprintf(fp, "force create mode = 0777\n");
 
 	/* max users */
-#if defined(RTCONFIG_SOC_IPQ8074) || defined(RTCONFIG_SOC_IPQ8064)
-	if (nvram_get_int("st_max_user") > max_user)
-		max_user = nvram_get_int("st_max_user");
-	fprintf(fp, "max connections = %d\n", max_user);
-#else
-	if(strcmp(nvram_safe_get("st_max_user"), "") != 0){
+	if(strcmp(nvram_safe_get("st_max_user"), "") != 0)
 		fprintf(fp, "max connections = %s\n", nvram_safe_get("st_max_user"));
-	}
-#endif
 
 	if(!nvram_get_int("stop_samba_speedup")){
-#if defined(RTCONFIG_SOC_IPQ8064)
+#if defined(RTCONFIG_SAMBA36X)
 		fprintf(fp, "socket options = TCP_NODELAY SO_KEEPALIVE\n");
-#elif defined(RTCONFIG_ALPINE)
-		fprintf(fp, "socket options = TCP_NODELAY IPTOS_LOWDELAY IPTOS_THROUGHPUT SO_RCVBUF=5048576 SO_SNDBUF=5048576\n");
 #elif defined(RTCONFIG_BCMARM)
 #ifdef RTCONFIG_BCM_7114
 		fprintf(fp, "socket options = IPTOS_LOWDELAY TCP_NODELAY SO_RCVBUF=131072 SO_SNDBUF=131072\n");
@@ -354,7 +316,7 @@ int main(int argc, char *argv[])
 #endif
 	}
 	fprintf(fp, "obey pam restrictions = no\n");
-	fprintf(fp, "use spnego = %s\n", spnego? "yes" : "no");		// ASUS add
+	fprintf(fp, "use spnego = no\n");		// ASUS add
 	fprintf(fp, "client use spnego = no\n");	// ASUS add
 //	fprintf(fp, "client use spnego = yes\n");	// ASUS add
 	fprintf(fp, "disable spoolss = yes\n");		// ASUS add
@@ -416,6 +378,20 @@ int main(int argc, char *argv[])
 #endif
 	fprintf(fp, "hosts deny = 0.0.0.0/0\n");
 
+#if defined(RTCONFIG_SAMBA36X)
+	fprintf(fp, "enable core files = no\n");
+	fprintf(fp, "deadtime = 30\n");
+	fprintf(fp, "local master = yes\n");
+	fprintf(fp, "preferred master = yes\n");
+	fprintf(fp, "load printers = no\n");
+	fprintf(fp, "printable = no\n");
+	fprintf(fp, "max protocol = SMB2\n");
+	fprintf(fp, "smb encrypt = disabled\n");
+	fprintf(fp, "min receivefile size = 16384\n");
+	fprintf(fp, "passdb backend = smbpasswd\n");
+	fprintf(fp, "smb passwd file = /etc/samba/smbpasswd\n");
+#endif
+
 	disks_info = read_disk_data();
 	if(disks_info == NULL){
 		usb_dbg("Couldn't get disk list when writing smb.conf!\n");
@@ -470,7 +446,7 @@ int main(int argc, char *argv[])
 				} while(dup);
 				mount_folder = strrchr(unique_share_name, '/')+1;
 
-				int node_layer = get_permission(NULL, follow_partition->mount_point, NULL, "cifs", 0);
+				node_layer = get_permission(NULL, follow_partition->mount_point, NULL, "cifs");
 				if(node_layer == 3){
 					fprintf(fp, "[%s]\n", mount_folder);
 					fprintf(fp, "comment = %s's %s\n", follow_disk->tag, mount_folder);
@@ -481,9 +457,9 @@ int main(int argc, char *argv[])
 					fprintf(fp, "fake directory create times = yes\n");
 				}
 				else{
-					//if(get_all_folder(follow_partition->mount_point, &sh_num, &folder_list) < 0)
-					if(get_folder_list(follow_partition->mount_point, &sh_num, &folder_list) < 0)
-					{
+					//result = get_all_folder(follow_partition->mount_point, &sh_num, &folder_list);
+					result = get_folder_list(follow_partition->mount_point, &sh_num, &folder_list);
+					if (result < 0){
 						free_2_dimension_list(&sh_num, &folder_list);
 						continue;
 					}
@@ -564,9 +540,9 @@ int main(int argc, char *argv[])
 					first = 1;
 					for(i = 0; i < acc_num; ++i){
 						if(n == -1)
-							samba_right = get_permission(account_list[i], follow_partition->mount_point, NULL, "cifs", 0);
+							samba_right = get_permission(account_list[i], follow_partition->mount_point, NULL, "cifs");
 						else
-							samba_right = get_permission(account_list[i], follow_partition->mount_point, folder_list[n], "cifs", 0);
+							samba_right = get_permission(account_list[i], follow_partition->mount_point, folder_list[n], "cifs");
 						if(first == 1)
 							first = 0;
 						else
@@ -580,9 +556,9 @@ int main(int argc, char *argv[])
 					first = 1;
 					for(i = 0; i < acc_num; ++i){
 						if(n == -1)
-							samba_right = get_permission(account_list[i], follow_partition->mount_point, NULL, "cifs", 0);
+							samba_right = get_permission(account_list[i], follow_partition->mount_point, NULL, "cifs");
 						else
-							samba_right = get_permission(account_list[i], follow_partition->mount_point, folder_list[n], "cifs", 0);
+							samba_right = get_permission(account_list[i], follow_partition->mount_point, folder_list[n], "cifs");
 						if(samba_right >= 1)
 							continue;
 						
@@ -599,9 +575,9 @@ int main(int argc, char *argv[])
 					first = 1;
 					for(i = 0; i < acc_num; ++i){
 						if(n == -1)
-							samba_right = get_permission(account_list[i], follow_partition->mount_point, NULL, "cifs", 0);
+							samba_right = get_permission(account_list[i], follow_partition->mount_point, NULL, "cifs");
 						else
-							samba_right = get_permission(account_list[i], follow_partition->mount_point, folder_list[n], "cifs", 0);
+							samba_right = get_permission(account_list[i], follow_partition->mount_point, folder_list[n], "cifs");
 						if(samba_right < 1)
 							continue;
 
@@ -618,9 +594,9 @@ int main(int argc, char *argv[])
 					first = 1;
 					for(i = 0; i < acc_num; ++i){
 						if(n == -1)
-							samba_right = get_permission(account_list[i], follow_partition->mount_point, NULL, "cifs", 0);
+							samba_right = get_permission(account_list[i], follow_partition->mount_point, NULL, "cifs");
 						else
-							samba_right = get_permission(account_list[i], follow_partition->mount_point, folder_list[n], "cifs", 0);
+							samba_right = get_permission(account_list[i], follow_partition->mount_point, folder_list[n], "cifs");
 						if(samba_right < 2)
 							continue;
 
@@ -646,21 +622,12 @@ int main(int argc, char *argv[])
 			){
 		usb_dbg("samba mode: user\n");
 
-#ifdef RTCONFIG_PERMISSION_MANAGEMENT
-		// get the account list
-		if(PMS_GetAccountInfo(PMS_ACTION_GET_FULL, &account_list, &group_list, &acc_num, &group_num) < 0){
-			usb_dbg("Can't read the account list.\n");
-			PMS_FreeAccInfo(&account_list, &group_list);
-			goto confpage;
-		}
-#else
 		// get the account list
 		if(get_account_list(&acc_num, &account_list) < 0){
 			usb_dbg("Can't read the account list.\n");
 			free_2_dimension_list(&acc_num, &account_list);
 			goto confpage;
 		}
-#endif
 
 		for(follow_disk = disks_info; follow_disk != NULL; follow_disk = follow_disk->next){
 			for(follow_partition = follow_disk->partitions; follow_partition != NULL; follow_partition = follow_partition->next){
@@ -677,6 +644,8 @@ int main(int argc, char *argv[])
 
 				// 2. start to get every share
 				for(n = 0; n < sh_num; ++n){
+					int i, first;
+
 					int count = get_list_strings_count(folder_list, sh_num, folder_list[n]);
 					if(count <= 1)
 						fprintf(fp, "[%s]\n", folder_list[n]);
@@ -690,20 +659,11 @@ int main(int argc, char *argv[])
 
 					fprintf(fp, "valid users = ");
 					first = 1;
-#ifdef RTCONFIG_PERMISSION_MANAGEMENT
-					for(follow_account = account_list; follow_account != NULL; follow_account = follow_account->next){
-						memset(char_user, 0, sizeof(char_user));
-						ascii_to_char_safe(char_user, follow_account->name, sizeof(char_user));
-
-						if(first == 1)
-							first = 0;
-						else
-							fprintf(fp, ", ");
-
-						fprintf(fp, "%s", char_user);
-					}
-#else
 					for(i = 0; i < acc_num; ++i){
+						if(n == -1)
+							samba_right = get_permission(account_list[i], follow_partition->mount_point, NULL, "cifs");
+						else
+							samba_right = get_permission(account_list[i], follow_partition->mount_point, folder_list[n], "cifs");
 						if(first == 1)
 							first = 0;
 						else
@@ -711,54 +671,12 @@ int main(int argc, char *argv[])
 
 						fprintf(fp, "%s", account_list[i]);
 					}
-#endif
 					fprintf(fp, "\n");
 
 					fprintf(fp, "invalid users = ");
 					first = 1;
-#ifdef RTCONFIG_PERMISSION_MANAGEMENT
-					for(follow_account = account_list; follow_account != NULL; follow_account = follow_account->next){
-						owned_group = follow_account->owned_group;
-						while(owned_group != NULL){
-							group_member = (PMS_ACCOUNT_GROUP_INFO_T *)owned_group->member;
-
-							memset(char_user, 0, sizeof(char_user));
-							ascii_to_char_safe(char_user, group_member->name, sizeof(char_user));
-
-							samba_right_group = get_permission(char_user, follow_partition->mount_point, folder_list[n], "cifs", 1);
-
-#ifdef UNION_PERMISSION
-							if(samba_right_group >= 1)
-#else
-							if(samba_right_group < 1)
-#endif
-								break;
-
-							owned_group = owned_group->next;
-						}
-
-						memset(char_user, 0, sizeof(char_user));
-						ascii_to_char_safe(char_user, follow_account->name, sizeof(char_user));
-
-						samba_right = get_permission(char_user, follow_partition->mount_point, folder_list[n], "cifs", 0);
-
-#ifdef UNION_PERMISSION
-						if(samba_right >= 1 || samba_right_group >= 1)
-#else
-						if(samba_right >= 1 && samba_right_group >= 1)
-#endif
-							continue;
-
-						if(first == 1)
-							first = 0;
-						else
-							fprintf(fp, ", ");
-
-						fprintf(fp, "%s", char_user);
-					}
-#else
 					for(i = 0; i < acc_num; ++i){
-						samba_right = get_permission(account_list[i], follow_partition->mount_point, folder_list[n], "cifs", 0);
+						samba_right = get_permission(account_list[i], follow_partition->mount_point, folder_list[n], "cifs");
 						if(samba_right >= 1)
 							continue;
 						
@@ -769,58 +687,12 @@ int main(int argc, char *argv[])
 
 						fprintf(fp, "%s", account_list[i]);
 					}
-#endif
 					fprintf(fp, "\n");
 
 					fprintf(fp, "read list = ");
 					first = 1;
-#ifdef RTCONFIG_PERMISSION_MANAGEMENT
-					for(follow_account = account_list; follow_account != NULL; follow_account = follow_account->next){
-						owned_group = follow_account->owned_group;
-						while(owned_group != NULL){
-							group_member = (PMS_ACCOUNT_GROUP_INFO_T *)owned_group->member;
-
-							memset(char_user, 0, sizeof(char_user));
-							ascii_to_char_safe(char_user, group_member->name, sizeof(char_user));
-
-							samba_right_group = get_permission(char_user, follow_partition->mount_point, folder_list[n], "cifs", 1);
-
-#ifdef UNION_PERMISSION
-							if(samba_right_group >= 1)
-#else
-							if(samba_right_group < 1)
-#endif
-								break;
-
-							owned_group = owned_group->next;
-						}
-#ifndef UNION_PERMISSION
-						if(samba_right_group < 1)
-								continue;
-#endif
-
-						memset(char_user, 0, sizeof(char_user));
-						ascii_to_char_safe(char_user, follow_account->name, sizeof(char_user));
-
-						samba_right = get_permission(char_user, follow_partition->mount_point, folder_list[n], "cifs", 0);
-
-#ifdef UNION_PERMISSION
-						if(samba_right < 1 && samba_right_group < 1)
-#else
-						if(samba_right < 1)
-#endif
-							continue;
-
-						if(first == 1)
-							first = 0;
-						else
-							fprintf(fp, ", ");
-
-						fprintf(fp, "%s", char_user);
-					}
-#else
 					for(i = 0; i < acc_num; ++i){
-						samba_right = get_permission(account_list[i], follow_partition->mount_point, folder_list[n], "cifs", 0);
+						samba_right = get_permission(account_list[i], follow_partition->mount_point, folder_list[n], "cifs");
 						if(samba_right < 1)
 							continue;
 
@@ -831,58 +703,12 @@ int main(int argc, char *argv[])
 
 						fprintf(fp, "%s", account_list[i]);
 					}
-#endif
 					fprintf(fp, "\n");
 
 					fprintf(fp, "write list = ");
 					first = 1;
-#ifdef RTCONFIG_PERMISSION_MANAGEMENT
-					for(follow_account = account_list; follow_account != NULL; follow_account = follow_account->next){
-						owned_group = follow_account->owned_group;
-						while(owned_group != NULL){
-							group_member = (PMS_ACCOUNT_GROUP_INFO_T *)owned_group->member;
-
-							memset(char_user, 0, sizeof(char_user));
-							ascii_to_char_safe(char_user, group_member->name, sizeof(char_user));
-
-							samba_right_group = get_permission(char_user, follow_partition->mount_point, folder_list[n], "cifs", 1);
-
-#ifdef UNION_PERMISSION
-							if(samba_right_group >= 2)
-#else
-							if(samba_right_group < 2)
-#endif
-								break;
-
-							owned_group = owned_group->next;
-						}
-#ifndef UNION_PERMISSION
-						if(samba_right_group < 2)
-								continue;
-#endif
-
-						memset(char_user, 0, sizeof(char_user));
-						ascii_to_char_safe(char_user, follow_account->name, sizeof(char_user));
-
-						samba_right = get_permission(char_user, follow_partition->mount_point, folder_list[n], "cifs", 0);
-
-#ifdef UNION_PERMISSION
-						if(samba_right < 2 && samba_right_group < 2)
-#else
-						if(samba_right < 2)
-#endif
-							continue;
-
-						if(first == 1)
-							first = 0;
-						else
-							fprintf(fp, ", ");
-
-						fprintf(fp, "%s", char_user);
-					}
-#else
 					for(i = 0; i < acc_num; ++i){
-						samba_right = get_permission(account_list[i], follow_partition->mount_point, folder_list[n], "cifs", 0);
+						samba_right = get_permission(account_list[i], follow_partition->mount_point, folder_list[n], "cifs");
 						if(samba_right < 2)
 							continue;
 
@@ -893,7 +719,6 @@ int main(int argc, char *argv[])
 
 						fprintf(fp, "%s", account_list[i]);
 					}
-#endif
 					fprintf(fp, "\n");
 				}
 
@@ -901,11 +726,7 @@ int main(int argc, char *argv[])
 			}
 		}
 
-#ifdef RTCONFIG_PERMISSION_MANAGEMENT
-		PMS_FreeAccInfo(&account_list, &group_list);
-#else
 		free_2_dimension_list(&acc_num, &account_list);
-#endif
 	}
 
 confpage:

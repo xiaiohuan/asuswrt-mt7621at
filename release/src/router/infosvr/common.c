@@ -113,7 +113,7 @@ kill_pidfile_s(char *pidfile, int sig)	// copy from rc/common_ex.c
 		return errno;
 }
 
-extern char ssid_g[32];
+extern char ssid_g[];
 extern char netmask_g[];
 extern char productid_g[];
 extern char firmver_g[];
@@ -181,7 +181,9 @@ char *processPacket(int sockfd, char *pdubuf, unsigned short cli_port)
 //    int i;
     char ftype[8], prinfo[128];	/* get disk type */
     int free_space;
-
+#if defined(RTCONFIG_WIRELESSREPEATER) || defined(RTCONFIG_PROXYSTA)
+    char tmp[100], prefix[] = "wlXXXXXXXXXXXXXX";
+#endif
     unsigned short send_port = cli_port;
 
     phdr = (IBOX_COMM_PKT_HDR *)pdubuf;  
@@ -255,12 +257,31 @@ char *processPacket(int sockfd, char *pdubuf, unsigned short cli_port)
 					sprintf(ginfo->PrinterInfo, "%s %s", nvram_safe_get("u2ec_mfg"), nvram_safe_get("u2ec_device"));
 			}
 #endif
-		     get_discovery_ssid(ssid_g, sizeof(ssid_g));
+#ifdef RTCONFIG_WIRELESSREPEATER
+			if (nvram_get_int("sw_mode") == SW_MODE_REPEATER)
+			{
+				snprintf(prefix, sizeof(prefix), "wl%d.1_", nvram_get_int("wlc_band"));
+				strncpy(ssid_g, nvram_safe_get(strcat_r(prefix, "ssid", tmp)), 32);
+			}
+			else
+#endif
+#ifdef RTCONFIG_BCMWL6
+#ifdef RTCONFIG_PROXYSTA
+			if (is_psta(nvram_get_int("wlc_band")) || is_psr(nvram_get_int("wlc_band")))
+			{
+				snprintf(prefix, sizeof(prefix), "wl%d_", nvram_get_int("wlc_band"));
+				strncpy(ssid_g, nvram_safe_get(strcat_r(prefix, "ssid", tmp)), 32);
+			}
+			else
+#endif
+#endif
+		     strncpy(ssid_g, nvram_safe_get("wl0_ssid"), 32);
+		     strcpy(ginfo->SSID, ssid_g);
 		     strcpy(ginfo->NetMask, get_lan_netmask());
 		     strcpy(ginfo->ProductID, productid_g);	// disable for tmp
 		     strcpy(ginfo->FirmwareVersion, firmver_g);	// disable for tmp
 		     memcpy(ginfo->MacAddress, mac, 6);
-		     ginfo->sw_mode = get_sw_mode();
+		     ginfo->sw_mode = nvram_get_int("sw_mode");
 #ifdef WCLIENT
 		     ginfo->OperationMode = OPERATION_MODE_WB;
 		     ginfo->Regulation = 0xff;
@@ -306,13 +327,32 @@ char *processPacket(int sockfd, char *pdubuf, unsigned short cli_port)
 					sprintf(ginfo->PrinterInfo, "%s %s", nvram_safe_get("u2ec_mfg"), nvram_safe_get("u2ec_device"));
 			}
 #endif
-		     get_discovery_ssid(ssid_g, sizeof(ssid_g));
+#ifdef RTCONFIG_WIRELESSREPEATER
+			if (nvram_get_int("sw_mode") == SW_MODE_REPEATER)
+			{
+				snprintf(prefix, sizeof(prefix), "wl%d.1_", nvram_get_int("wlc_band"));
+				strncpy(ssid_g, nvram_safe_get(strcat_r(prefix, "ssid", tmp)), 32);
+			}
+			else
+#endif
+#ifdef RTCONFIG_BCMWL6
+#ifdef RTCONFIG_PROXYSTA
+			if (is_psta(nvram_get_int("wlc_band")) || is_psr(nvram_get_int("wlc_band")))
+			{
+				snprintf(prefix, sizeof(prefix), "wl%d_", nvram_get_int("wlc_band"));
+				strncpy(ssid_g, nvram_safe_get(strcat_r(prefix, "ssid", tmp)), 32);
+			}
+			else
+#endif
+#endif
+		     strncpy(ssid_g, nvram_safe_get("wl0_ssid"), 32);
    		     strcpy(ginfo->SSID, ssid_g);
 		     strcpy(ginfo->NetMask, get_lan_netmask());
 		     strcpy(ginfo->ProductID, productid_g);	// disable for tmp
 		     strcpy(ginfo->FirmwareVersion, firmver_g); // disable for tmp
 		     memcpy(ginfo->MacAddress, mac, 6);
-		     ginfo->sw_mode = get_sw_mode();
+		     ginfo->sw_mode = nvram_get_int("sw_mode");
+
 #ifdef WAVESERVER    // eric++
 	     	     // search /tmp/waveserver and get information
 	     	     wsinfo = (WS_INFO_T*) (pdubuf_res + sizeof (IBOX_COMM_PKT_RES) + sizeof (PKT_GET_INFO));

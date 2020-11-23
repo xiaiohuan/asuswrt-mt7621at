@@ -77,7 +77,7 @@ CFLAGS += $(ASUSNATNL_CFLAGS)
 CFLAGS += $(AICAM_CFLAGS)
 CFLAGS += $(ROUTER_CFLAGS)
 
-LIBS = -lcurl -lssl -lcrypto -lxml2 -ljson-c -ldl -pthread -lrt $(ROUTER_LIBS) -lws -lgcc_s
+LIBS = -lcurl -lssl -lcrypto -lxml2 -ljson-c -ldl -pthread -lrt $(ROUTER_LIBS) -lws
 LDFLAGS = -L$(OPENSSL_DIR) -L$(CURL_DIR)/lib/.libs -L$(XML2_DIR)/.libs -L$(JSON_C_DIR)/.libs -L. $(ROUTER_LDFLAGS) -L$(WS_SRC) -L$(WB_DIR) -L$(WB_DIR)/output
 ifeq ($(RTCONFIG_QCA),y)
 LDFLAGS += -L$(LIBDIR) -lm
@@ -85,7 +85,7 @@ endif
 
 ifeq ($(HND_ROUTER),y)
 CFLAGS += -DPTHREAD_STACK_SIZE=0x51200
-LDFLAGS += -L$(TOP)/wlcsm -lwlcsm
+LDFLAGS += -L$(TOP)/wlcsm -lwlcsm -lgcc_s
 endif
 
 ifeq ($(RTCONFIG_BCMARM),y)
@@ -110,7 +110,7 @@ ifeq ($(wildcard $(TOP)/aaews/*.c),)
 router:
 	-cp -f $(TOP)/aaews/prebuild/aaews aaews
 else
-router: $(WSLIB) $(TARGET) $(DOG)
+router: $(WSLIB) $(TARGET)
 endif
 $(WSLIB):
 	cd $(WB_DIR) && \

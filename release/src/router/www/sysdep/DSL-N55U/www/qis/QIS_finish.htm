@@ -112,11 +112,6 @@ function QKfinish_load_body(){
 	parent.document.getElementById("LoadingBar").style.visibility = 'hidden';
 	parent.document.getElementById("btn_gotoindex").style.visibility = "hidden";
 
-	var linkInternet = httpApi.isConnected();
-	if(linkInternet){
-		document.getElementById("main_manual").style.display = "";
-	}
-
 	if(sw_mode == "2"){
 		if('<% nvram_get("wlc_band"); %>' == 0){
 			auth_mode2 = '<% nvram_get("wl0.1_auth_mode_x"); %>';
@@ -349,7 +344,7 @@ function QKfinish_load_body(){
 }
 
 function gotoASUS(){
-	parent.location.href = "https://www.asus.com/support/";
+	parent.location.href = "http://www.asus.com/support/";
 }
 
 function goto_index(){
@@ -570,7 +565,7 @@ function redirect_page(redirect_flag){
 
 <div id="AreaHint" style="margin-top:10px; margin-left:5px;">
 	<div><img style="width: 720px; *width: 710px; height: 2px;" src="/images/New_ui/export/line_export.png"></div>
-	<div id="main_manual" style="padding-left:20px;margin-top:10px;display:none;">
+	<div id="main_manual" style="padding-left:20px;margin-top:10px">
 		<span><#ASUS_Registration#></span>
 	</div>	
 </div>
@@ -587,7 +582,7 @@ function redirect_page(redirect_flag){
 <form method="post" name="restartForm" action="/start_apply2.htm" target="hidden_frame">
 	<input type="hidden" name="flag" value="finishQIS">
 	<input type="hidden" name="current_page" value="/qis/QIS_finish.htm">
-	<input type="hidden" name="next_page" value="<% abs_index_page(); %>">
+	<input type="hidden" name="next_page" value="/index.asp">
 	<input type="hidden" name="action_mode" value="apply">
 	<input type="hidden" name="action_script" value="reboot">
 	<input type="hidden" name="action_wait" value="0">

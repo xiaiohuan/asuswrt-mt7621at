@@ -1,9 +1,5 @@
 /************************************************************/
-/*  Version 2.6     by Edison      2018/11/1		    */
-/*  Add Label_MacAddress in STORAGE_INFO_T          */
-/************************************************************/
-/************************************************************/
-/*  Version 2.5     by Edison      2016/5/16		    */
+/*  Version 2.4     by Edison      2016/5/16		    */
 /*  Using unsigned integer for 64 bits to 32 bits           */
 /************************************************************/
 /************************************************************/
@@ -229,12 +225,10 @@ typedef struct ws_info_t	{
 #define EXTEND_CAP_WEBDAV 		0x0001
 #define EXTEND_CAP_SYNC			0x0002
 #define EXTEND_CAP_MEDIA		0x0004
-#define EXTEND_CAP_AMAS			0x0008
 
 #define EXTEND_CAP_AAE_BASIC		0x0010
 #define EXTEND_CAP_HWCTRL		0x0020
 #define EXTEND_CAP_SWCTRL		0x0040
-#define EXTEND_CAP_MASTER		0x0080
 
 #define EXTEND_WEBDAV_TYPE_HTTP		0x00
 #define EXTEND_WEBDAV_TYPE_HTTPS	0x01
@@ -289,7 +283,6 @@ typedef struct storage_info_t {
 	BYTE AppAPILevel;	/* API level for app */
 	BYTE EnableAAE;	
 	BYTE AAEDeviceID[64];
-	BYTE Label_MacAddress[6];
 } STORAGE_INFO_T;
 
 typedef struct PktGetInfoEx1

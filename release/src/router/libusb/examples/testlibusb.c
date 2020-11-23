@@ -10,7 +10,7 @@
 
 int verbose = 0;
 
-static void print_endpoint(struct usb_endpoint_descriptor *endpoint)
+void print_endpoint(struct usb_endpoint_descriptor *endpoint)
 {
   printf("      bEndpointAddress: %02xh\n", endpoint->bEndpointAddress);
   printf("      bmAttributes:     %02xh\n", endpoint->bmAttributes);
@@ -20,7 +20,7 @@ static void print_endpoint(struct usb_endpoint_descriptor *endpoint)
   printf("      bSynchAddress:    %d\n", endpoint->bSynchAddress);
 }
 
-static void print_altsetting(struct usb_interface_descriptor *interface)
+void print_altsetting(struct usb_interface_descriptor *interface)
 {
   int i;
 
@@ -36,7 +36,7 @@ static void print_altsetting(struct usb_interface_descriptor *interface)
     print_endpoint(&interface->endpoint[i]);
 }
 
-static void print_interface(struct usb_interface *interface)
+void print_interface(struct usb_interface *interface)
 {
   int i;
 
@@ -44,7 +44,7 @@ static void print_interface(struct usb_interface *interface)
     print_altsetting(&interface->altsetting[i]);
 }
 
-static void print_configuration(struct usb_config_descriptor *config)
+void print_configuration(struct usb_config_descriptor *config)
 {
   int i;
 
@@ -59,7 +59,7 @@ static void print_configuration(struct usb_config_descriptor *config)
     print_interface(&config->interface[i]);
 }
 
-static int print_device(struct usb_device *dev, int level)
+int print_device(struct usb_device *dev, int level)
 {
   usb_dev_handle *udev;
   char description[256];

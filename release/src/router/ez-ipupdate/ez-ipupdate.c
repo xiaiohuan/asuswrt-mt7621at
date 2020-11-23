@@ -4940,17 +4940,16 @@ show_message("ez-ipupdate: starting...\n");
                 nvram_unset ("ddns_suggest_name");
                 nvram_unset ("ddns_old_name");
                 if (asus_private() == -1) {
-			             nvram_set ("ddns_return_code", "connect_fail");
-			             nvram_set ("ddns_return_code_chk", "connect_fail");
+                    nvram_set ("ddns_return_code", "connect_fail");
+                    nvram_set ("ddns_return_code_chk", "connect_fail");
                     goto exit_main;
-		            }
+                }
         }
-
         if (g_asus_ddns_mode == 1)      {
               retval = asus_reg_domain (1);
+              show_message("asus_reg_domain retval= %d\n", retval);
               goto asusddns_update;
-        } else if (g_asus_ddns_mode == 2){
-        show_message("g_asus_ddns_mode == 2\n");
+        } else if (g_asus_ddns_mode == 2)       {
                 // override update_entry() method
                 service->update_entry = asus_update_entry;
         } else if(g_asus_ddns_mode == 3){

@@ -65,15 +65,13 @@ int send_from(int fd, int nowild, char *packet, size_t len,
 	  struct in_pktinfo p;
 	  p.ipi_ifindex = 0;
 	  p.ipi_spec_dst = source->addr4;
-	  msg.msg_controllen = CMSG_SPACE(sizeof(struct in_pktinfo));
 	  memcpy(CMSG_DATA(cmptr), &p, sizeof(p));
-	  cmptr->cmsg_len = CMSG_LEN(sizeof(struct in_pktinfo));
+	  msg.msg_controllen = cmptr->cmsg_len = CMSG_LEN(sizeof(struct in_pktinfo));
 	  cmptr->cmsg_level = IPPROTO_IP;
 	  cmptr->cmsg_type = IP_PKTINFO;
 #elif defined(IP_SENDSRCADDR)
-	  msg.msg_controllen = CMSG_SPACE(sizeof(struct in_addr));
 	  memcpy(CMSG_DATA(cmptr), &(source->addr4), sizeof(source->addr4));
-	  cmptr->cmsg_len = CMSG_LEN(sizeof(struct in_addr));
+	  msg.msg_controllen = cmptr->cmsg_len = CMSG_LEN(sizeof(struct in_addr));
 	  cmptr->cmsg_level = IPPROTO_IP;
 	  cmptr->cmsg_type = IP_SENDSRCADDR;
 #endif
@@ -83,9 +81,8 @@ int send_from(int fd, int nowild, char *packet, size_t len,
 	  struct in6_pktinfo p;
 	  p.ipi6_ifindex = iface; /* Need iface for IPv6 to handle link-local addrs */
 	  p.ipi6_addr = source->addr6;
-	  msg.msg_controllen = CMSG_SPACE(sizeof(struct in6_pktinfo));
 	  memcpy(CMSG_DATA(cmptr), &p, sizeof(p));
-	  cmptr->cmsg_len = CMSG_LEN(sizeof(struct in6_pktinfo));
+	  msg.msg_controllen = cmptr->cmsg_len = CMSG_LEN(sizeof(struct in6_pktinfo));
 	  cmptr->cmsg_type = daemon->v6pktinfo;
 	  cmptr->cmsg_level = IPPROTO_IPV6;
 	}
@@ -874,11 +871,7 @@ void reply_query(int fd, int family, time_t now)
 		  fd = forward->rfd4->fd;
 		}
 	    }
-
-#ifdef HAVE_DUMPFILE
-	  dump_packet(DUMP_SEC_QUERY, (void *)header, (size_t)plen, NULL, &start->addr);
-#endif
-
+	
 	  while (retry_send(sendto(fd, (char *)header, plen, 0,
 				   &start->addr.sa,
 				   sa_len(&start->addr))));
@@ -950,12 +943,12 @@ void reply_query(int fd, int family, time_t now)
   /* We tried resending to this server with a smaller maximum size and got an answer.
      Make that permanent. To avoid reduxing the packet size for a single dropped packet,
      only do this when we get a truncated answer, or one larger than the safe size. */
-  if (forward->sentto->edns_pktsz > SAFE_PKTSZ && (forward->flags & FREC_TEST_PKTSZ) && 
+  if (server && server->edns_pktsz > SAFE_PKTSZ && (forward->flags & FREC_TEST_PKTSZ) && 
       ((header->hb3 & HB3_TC) || n >= SAFE_PKTSZ))
     {
-      forward->sentto->edns_pktsz = SAFE_PKTSZ;
-      forward->sentto->pktsz_reduced = now;
-      prettyprint_addr(&forward->sentto->addr, daemon->addrbuff);
+      server->edns_pktsz = SAFE_PKTSZ;
+      server->pktsz_reduced = now;
+      prettyprint_addr(&server->addr, daemon->addrbuff);
       my_syslog(LOG_WARNING, _("reducing DNS packet size for nameserver %s to %d"), daemon->addrbuff, SAFE_PKTSZ);
     }
 
@@ -977,7 +970,7 @@ void reply_query(int fd, int family, time_t now)
 	no_cache_dnssec = 1;
       
 #ifdef HAVE_DNSSEC
-      if ((forward->sentto->flags & SERV_DO_DNSSEC) && 
+      if (server && (server->flags & SERV_DO_DNSSEC) && 
 	  option_bool(OPT_DNSSEC_VALID) && !(forward->flags & FREC_CHECKING_DISABLED))
 	{
 	  int status = 0;
@@ -1007,8 +1000,8 @@ void reply_query(int fd, int family, time_t now)
 		    status = dnssec_validate_ds(now, header, n, daemon->namebuff, daemon->keyname, forward->class);
 		  else
 		    status = dnssec_validate_reply(now, header, n, daemon->namebuff, daemon->keyname, &forward->class, 
-						   !option_bool(OPT_DNSSEC_IGN_NS) && (forward->sentto->flags & SERV_DO_DNSSEC),
-						   NULL, NULL, NULL);
+						   !option_bool(OPT_DNSSEC_IGN_NS) && (server->flags & SERV_DO_DNSSEC),
+						   NULL, NULL);
 #ifdef HAVE_DUMPFILE
 		  if (status == STAT_BOGUS)
 		    dump_packet((forward->flags & (FREC_DNSKEY_QUERY | FREC_DS_QUERY)) ? DUMP_SEC_BOGUS : DUMP_BOGUS,
@@ -1051,8 +1044,7 @@ void reply_query(int fd, int family, time_t now)
 			 servers for domains are involved. */		      
 		      if (search_servers(now, NULL, F_DNSSECOK, daemon->keyname, &type, &domain, NULL) == 0)
 			{
-			  struct server *start, *new_server = NULL;
-			  start = server = forward->sentto;
+			  struct server *start = server, *new_server = NULL;
 			  
 			  while (1)
 			    {
@@ -1206,7 +1198,6 @@ void reply_query(int fd, int family, time_t now)
 	      bogusanswer = 1;
 	    }
 	}
-
 #endif
 
       /* restore CD bit to the value in the query */
@@ -1607,7 +1598,7 @@ static int tcp_key_recurse(time_t now, int status, struct dns_header *header, si
       else 
 	new_status = dnssec_validate_reply(now, header, n, name, keyname, &class,
 					   !option_bool(OPT_DNSSEC_IGN_NS) && (server->flags & SERV_DO_DNSSEC),
-					   NULL, NULL, NULL);
+					   NULL, NULL);
       
       if (new_status != STAT_NEED_DS && new_status != STAT_NEED_KEY)
 	break;

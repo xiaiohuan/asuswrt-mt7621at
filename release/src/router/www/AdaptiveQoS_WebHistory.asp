@@ -9,7 +9,7 @@
 <link rel="shortcut icon" href="images/favicon.png">
 <link rel="icon" href="images/favicon.png">
 <title><#Web_Title#> - <#Adaptive_History#></title>
-<link rel="stylesheet" type="text/css" href="index_style.css">
+<link rel="stylesheet" type="text/css" href="index_style.css"> 
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <link rel="stylesheet" type="text/css" href="usp_style.css">
 <link rel="stylesheet" type="text/css" href="css/element.css">
@@ -20,8 +20,6 @@
 <script type="text/javascript" src="/popup.js"></script>
 <script type="text/javascript" src="/client_function.js"></script>
 <script type="text/javascript" src="/switcherplugin/jquery.iphone-switch.js"></script>
-<script type="text/javascript" src="/js/httpApi.js"></script>
-<script language="JavaScript" type="text/javascript" src="/js/asus_eula.js"></script>
 <style>
 .transition_style{
 	-webkit-transition: all 0.2s ease-in-out;
@@ -31,130 +29,61 @@
 }
 </style>
 <script>
+window.onresize = function() {
+	if(document.getElementById("agreement_panel").style.display == "block") {
+		cal_panel_block("agreement_panel", 0.25);
+	}
+}
 function initial(){
 	show_menu();
 	if(document.form.bwdpi_wh_enable.value == 1){
 		document.getElementById("log_field").style.display = "";
-		getWebHistory("all", "1");
+		getWebHistory();
 		genClientListOption();
 	}
-	else{
+	else{	
 		document.getElementById("log_field").style.display = "none";
-	}
-
-	if(!ASUS_EULA.status("tm")){
-		ASUS_EULA.config(eula_confirm, cancel);
 	}	
 }
-
-var htmlEnDeCode = (function() {
-    var charToEntityRegex,
-        entityToCharRegex,
-        charToEntity,
-        entityToChar;
-
-    function resetCharacterEntities() {
-        charToEntity = {};
-        entityToChar = {};
-        // add the default set
-        addCharacterEntities({
-            '&amp;'     :   '&',
-            '&gt;'      :   '>',
-            '&lt;'      :   '<',
-            '&quot;'    :   '"',
-            '&#39;'     :   "'"
-        });
-    }
-
-    function addCharacterEntities(newEntities) {
-        var charKeys = [],
-            entityKeys = [],
-            key, echar;
-        for (key in newEntities) {
-            echar = newEntities[key];
-            entityToChar[key] = echar;
-            charToEntity[echar] = key;
-            charKeys.push(echar);
-            entityKeys.push(key);
-        }
-        charToEntityRegex = new RegExp('(' + charKeys.join('|') + ')', 'g');
-        entityToCharRegex = new RegExp('(' + entityKeys.join('|') + '|&#[0-9]{1,5};' + ')', 'g');
-    }
-
-    function htmlEncode(value){
-        var htmlEncodeReplaceFn = function(match, capture) {
-            return charToEntity[capture];
-        };
-
-        return (!value) ? value : String(value).replace(charToEntityRegex, htmlEncodeReplaceFn);
-    }
-
-    function htmlDecode(value) {
-        var htmlDecodeReplaceFn = function(match, capture) {
-            return (capture in entityToChar) ? entityToChar[capture] : String.fromCharCode(parseInt(capture.substr(2), 10));
-        };
-
-        return (!value) ? value : String(value).replace(entityToCharRegex, htmlDecodeReplaceFn);
-    }
-
-    resetCharacterEntities();
-
-    return {
-        htmlEncode: htmlEncode,
-        htmlDecode: htmlDecode
-    };
-})();
-
 var data_array = new Array();
 function parsingAjaxResult(rawData){
-	var match = 0;
+	var match = 0;;
 	for(i=0;i<rawData.length;i++){
-		var thisRawData = rawData[i];
-		thisRawData[2] = htmlEnDeCode.htmlEncode(rawData[i][2]);
-
 		for(j=0;j<data_array.length;j++){
-			if((data_array[j][0] == thisRawData[0])
-			&& (data_array[j][1] == thisRawData[1])
-			&& (data_array[j][2].toUpperCase() == thisRawData[2].toUpperCase())){
-				match = 1;
+			if((data_array[j][0] == rawData[i][0])
+			&& (data_array[j][1] == rawData[i][1])
+			&& (data_array[j][2].toUpperCase() == rawData[i][2].toUpperCase())){
+				match = 1;				
 				break;
-			}
+			}	
 		}
-
+				
 		if(match == 0)
-			data_array.push(thisRawData);
-
+			data_array.push(rawData[i]);
+		
 		match = 0;
 	}
-												
+
 	var code = "";
-	code += '<div style="display:flex;margin:3px 12px;">';
-	code += "<div style='width:20%;'><#Access_Time#></div>";
-	code += "<div style='width:30%;'><#PPPConnection_x_MacAddressForISP_itemname#> / <#Client_Name#></div>";
-	code += "<div style='width:50%;'><#Domain_Name#></div>";
-	code += "</div>";
-	for(var i=0; i<data_array.length; i++){
-		var thisLog = {
-			macAddr: data_array[i][0],
-			timeStamp: data_array[i][1],
-			hostName: data_array[i][2]
+	code += "<tr>";
+	code += "<th style='width:20%;text-align:left'>Access Time</th>";
+	code += "<th style='width:30%;text-align:left'><#PPPConnection_x_MacAddressForISP_itemname#> / <#Client_Name#></th>";
+	code += "<th style='width:50%;text-align:left'>Domain Name</th>";
+	code += "</tr>";
+	for(var i=0; i<data_array.length; i++){	
+		code += "<tr style='line-height:15px;'>";
+		code += "<td>" + convertTime(data_array[i][1]) + "</td>";
+		if(clientList[data_array[i][0]] != undefined) {
+			var clientName = (clientList[data_array[i][0]].nickName == "") ? clientList[data_array[i][0]].name : clientList[data_array[i][0]].nickName;
+			code += "<td title="+ data_array[i][0] + ">" + clientName + "</td>";
 		}
+		else
+			code += "<td>" + data_array[i][0] + "</td>";
 		
-
-		code += '<div style="display:flex;margin:3px 12px;">';
-		code += "<div style='width:20%;'>" + convertTime(thisLog.timeStamp) + "</div>";
-		if(clientList[thisLog.macAddr] != undefined) {
-			var clientName = (clientList[thisLog.macAddr].nickName == "") ? clientList[thisLog.macAddr].name : clientList[thisLog.macAddr].nickName;
-			code += "<div style='width:30%;' title="+ thisLog.macAddr + ">" + clientName + "</div>";
-		}
-		else{
-			code += "<div style='width:30%;'>" + thisLog.macAddr + "</div>";
-		}	
-
-		code += "<div style='width:50%;'>" + thisLog.hostName + "</div>";
-		code += "</div>";
+		code += "<td>" + data_array[i][2] + "</td>";	
+		code += "</tr>";
 	}
-
+	
 	document.getElementById('log_table').innerHTML = code;
 	data_array = [];
 }
@@ -165,9 +94,9 @@ function convertTime(t){
 	time.setTime(t*1000);
 
 	time_string = time.getFullYear() + "-" + (time.getMonth() + 1) + "-";
-	time_string += transform_time_format(time.getDate());
+	time_string += transform_time_format(time.getDate());	  
 	time_string += "&nbsp&nbsp" + transform_time_format(time.getHours()) + ":" + transform_time_format(time.getMinutes()) + ":" + transform_time_format(time.getSeconds());
-
+	
 	return time_string;
 }
 
@@ -177,37 +106,53 @@ function transform_time_format(time){
 		string += "0" + time;
 	else
 		string += time;
-
+		
 	return string;
 }
 
 var history_array = new Array();
-var temp = new Array();
 function getWebHistory(mac, page){
-	var page_count = page;
-	var client = "?client=" + mac + "&page=" + page_count;
+	var page_count = page ? page : "1";
+	var client = mac ? ("?client=" + mac) : ("?page=" + page_count); 
 
 	$.ajax({
 		url: '/getWebHistory.asp' + client,
-		dataType: 'script',
+		dataType: 'script',	
 		error: function(xhr){
-			setTimeout("getWebHistory(mac, page);", 1000);
+			setTimeout("getWebHistory();", 1000);
 		},
 		success: function(response){
 			history_array = array_temp;
-			if(page == '1'){
-				temp = [];
-			}	
-
-			temp = temp.concat(array_temp);
-			temp.sort(function(a,b){
-				return b[1] - a[1];
-			});            
-
-			parsingAjaxResult(temp);
-			if(history_array.length == 50){
-				getWebHistory(mac, parseInt(page_count)+1)
+			parsingAjaxResult(array_temp);
+			if(page_count == "1" || document.getElementById('clientListOption').value  != ""){
+				document.getElementById('previous_button').style.visibility = "hidden";
 			}
+			else{
+				document.getElementById('previous_button').style.visibility = "visible";		
+			}
+			
+			if(history_array.length < 50 || document.getElementById('clientListOption').value  != ""){
+				document.getElementById('next_button').style.visibility = "hidden";
+			}
+			else{
+				document.getElementById('next_button').style.visibility = "visible";			
+			}
+			
+			if(document.getElementById('clientListOption').value  == "" && page_count == "1" && history_array.length < 50){
+				document.getElementById('current_page').style.visibility = "hidden";			
+			}
+			else{
+				document.getElementById('current_page').style.visibility = "visible";			
+			}
+					
+			if(document.getElementById('clientListOption').value  != ""){			
+				document.getElementById('current_page').style.display = "none";
+			}
+			else{
+				document.getElementById('current_page').style.display = "";
+			}
+			
+			document.getElementById('current_page').value = page_count;
 		}
 	});
 }
@@ -227,49 +172,36 @@ function genClientListOption(){
 
 		var clientName = (clientObj.nickName == "") ? clientObj.name : clientObj.nickName;
 		var newItem = new Option(clientName, clientObj.mac);
-		document.getElementById("clientListOption").options.add(newItem);
+		document.getElementById("clientListOption").options.add(newItem); 
 	}
 }
 
-function applyRule(){
-	if(reset_wan_to_fo.change_status)
-		reset_wan_to_fo.change_wan_mode(document.form);
-
-	if(document.form.bwdpi_wh_enable.value == 1) {
-		var t = new Date();
-		var timestamp = t.getTime().toString().substring(0,10);
-		document.form.bwdpi_wh_stamp.value = timestamp;
+function change_page(flag){
+	var current_page = document.getElementById('current_page').value;
+	var page = 1;
+	if(flag == "next"){
+		page = parseInt(current_page) + 1;
+		getWebHistory("", page);
 	}
-	document.form.submit();
+	else{
+		page = parseInt(current_page) - 1;
+		if(page < 1)
+			page = 1;
+	
+		getWebHistory("", page);
+	}
 }
 function eula_confirm(){
 	document.form.TM_EULA.value = 1;
 	document.form.bwdpi_wh_enable.value = 1;
-	document.form.action_wait.value = "15";
-	applyRule();
+	document.form.submit();
 }
 
 function cancel(){
 	curState = 0;
 	$('#iphone_switch').animate({backgroundPosition: -37}, "slow", function() {});
-	document.form.action_wait.value = "3";
-	document.form.action_script.value = "restart_qos;restart_firewall";
-}
-function switch_control(_status){
-	if(_status) {
-		if(reset_wan_to_fo.check_status()) {
-			if(ASUS_EULA.check("tm")){
-				document.form.bwdpi_wh_enable.value = 1;
-				applyRule();
-			}
-		}
-		else
-			cancel();
-	}
-	else {
-		document.form.bwdpi_wh_enable.value = 0;
-		applyRule();
-	}
+	$("#agreement_panel").fadeOut(100);
+	document.getElementById("hiddenMask").style.visibility = "hidden";
 }
 function cal_panel_block(obj){
 	var blockmarginLeft;
@@ -277,18 +209,18 @@ function cal_panel_block(obj){
 		winWidth = window.innerWidth;
 	else if ((document.body) && (document.body.clientWidth))
 		winWidth = document.body.clientWidth;
-
+		
 	if (document.documentElement  && document.documentElement.clientHeight && document.documentElement.clientWidth){
 		winWidth = document.documentElement.clientWidth;
 	}
 
-	if(winWidth >1050){
-		winPadding = (winWidth-1050)/2;
+	if(winWidth >1050){	
+		winPadding = (winWidth-1050)/2;	
 		winWidth = 1105;
 		blockmarginLeft= (winWidth*0.2)+winPadding;
 	}
 	else if(winWidth <=1050){
-		blockmarginLeft= (winWidth)*0.2 + document.body.scrollLeft;
+		blockmarginLeft= (winWidth)*0.2 + document.body.scrollLeft;	
 	}
 
 	if(obj == "demo_background")
@@ -296,16 +228,12 @@ function cal_panel_block(obj){
 	else
 		document.getElementById(obj).style.marginLeft = blockmarginLeft+"px";
 }
-function updateWebHistory() {
-	setTimeout(function() {
-		getWebHistory(document.form.clientList.value, '1');
-	}, 200);
-}
 </script>
 </head>
 <body onload="initial();" onunload="unload_body();">
 <div id="TopBanner"></div>
 <div id="Loading" class="popup_bg"></div>
+<div id="agreement_panel" class="panel_folder" style="margin-top: -100px;"></div>
 <div id="hiddenMask" class="popup_bg" style="z-index:999;">
 	<table cellpadding="5" cellspacing="0" id="dr_sweet_advise" class="dr_sweet_advise" align="center"></table>
 	<!--[if lte IE 6.5]><iframe class="hackiframe"></iframe><![endif]-->
@@ -329,13 +257,13 @@ function updateWebHistory() {
 		<td valign="top" width="202">
 			<div id="mainMenu"></div>
 			<div id="subMenu"></div>
-		</td>
+		</td>	
 		<td valign="top">
-			<div id="tabMenu" class="submenuBlock"></div>
+			<div id="tabMenu" class="submenuBlock"></div>		
 			<table width="98%" border="0" align="left" cellpadding="0" cellspacing="0">
 				<tr>
-					<td align="left" valign="top">
-						<table width="760px" border="0" cellpadding="5" cellspacing="0" bordercolor="#6b8fa3"  class="FormTitle" id="FormTitle">
+					<td align="left" valign="top">				
+						<table width="760px" border="0" cellpadding="5" cellspacing="0" bordercolor="#6b8fa3"  class="FormTitle" id="FormTitle">		
 							<tr>
 								<td bgcolor="#4D595D" colspan="3" valign="top">
 									<div>&nbsp;</div>
@@ -346,16 +274,37 @@ function updateWebHistory() {
 									</div>
 									<div style="margin:5px">
 										<table style="margin-left:0px;" width="95%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">
-											<th><#Adaptive_History#></th>
+											<th>Enable Web History</th>
 											<td>
 												<div align="center" class="left" style="width:94px; float:left; cursor:pointer;" id="bwdpi_wh_enable"></div>
 															<script type="text/javascript">
 																$('#bwdpi_wh_enable').iphoneSwitch('<% nvram_get("bwdpi_wh_enable"); %>',
 																	function(){
-																		switch_control(1);
+																		if(document.form.TM_EULA.value == 0){
+																			$.get("tm_eula.htm", function(data){
+																				document.getElementById('agreement_panel').innerHTML= data;
+																				var url = "https://www.asus.com/Microsite/networks/Trend_Micro_EULA/";
+																				$("#eula_url").attr("href",url);
+																				url = "https://www.trendmicro.com/en_us/about/legal/privacy-policy-product.html"
+																				$("#tm_eula_url").attr("href",url);
+																				url = "https://success.trendmicro.com/data-collection-disclosure";
+																				$("#tm_disclosure_url").attr("href",url);
+																			});
+	
+																			dr_advise();
+																			cal_panel_block("agreement_panel", 0.25);
+																			$("#agreement_panel").fadeIn(300);
+																			return false;
+																		}
+																			var t = new Date();
+																			var timestamp = t.getTime().toString().substring(0,10);
+																			document.form.bwdpi_wh_stamp.value = timestamp;
+																			document.form.bwdpi_wh_enable.value = 1;
+																			document.form.submit();
 																	},
 																	function(){
-																		switch_control(0);
+																		document.form.bwdpi_wh_enable.value = 0;
+																		document.form.submit();
 																	}
 																);
 															</script>
@@ -364,29 +313,30 @@ function updateWebHistory() {
 									</div>
 									<div id="log_field">
 										<div style="margin:10px 5px">
-											<select id="clientListOption" class="input_option" name="clientList" onchange="getWebHistory(this.value, '1');">
-												<option value="all" selected><#All_Client#></option>
+											<select id="clientListOption" class="input_option" name="clientList" onchange="getWebHistory(this.value);">
+												<option value="" selected>All client</option>
 											</select>
+											<label style="margin: 0 5px 0 20px;visibility:hidden;cursor:pointer" id="previous_button" onclick="change_page('previous');">Previous</label>
+											<input class="input_3_table" value="1" id="current_page"></input>
+											<label style="margin-left:5px;cursor:pointer" id="next_button" onclick="change_page('next');">Next</label>
 										</div>
-										<div class="web_frame" style="height:700px;overflow:auto;margin:5px">
-											<div style="width:100%" id="log_table"></div>
+										<div style="height:600px;border:1px solid #A9A9A9;overflow:auto;margin:5px">
+											<table style="width:100%" id="log_table"></table>
 										</div>
 										<div class="apply_gen">
-											<input class="button_gen_long" onClick="httpApi.cleanLog('web_history', updateWebHistory);" type="button" value="<#CTL_clear#>" >
-											<input class="button_gen_long" onClick="getWebHistory(document.form.clientList.value, '1')" type="button" value="<#CTL_refresh#>">
+											<input class="button_gen_long" onClick="getWebHistory(document.form.clientList.value)" type="button" value="<#CTL_refresh#>">
 										</div>
 									</div>
 								</td>
 							</tr>
 						</table>
-					</td>
+					</td>  
 				</tr>
 			</table>
 			<!--===================================End of Main Content===========================================-->
-		</td>
+		</td>		
 	</tr>
 </table>
-</form>
 <div id="footer"></div>
 </body>
 </html>

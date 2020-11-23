@@ -1,11 +1,8 @@
 include ../common.mak
 
-CFLAGS += -I. -I$(TOP)/shared$(RPEX) -I$(SRCBASE)/include
-ifneq ($(BUILD_NAME),RP-AC56)
+CFLAGS += -I. -I$(TOP)/shared -I$(SRCBASE)/include
 LDFLAGS += -L$(TOP)/nvram -lnvram
-endif
-LDFLAGS +=-L$(TOP)/shared$(RPEX) -lshared
-
+LDFLAGS +=-L$(TOP)/shared -lshared
 EXEC = flash
 OBJS = flash_mtd.o
 
@@ -17,7 +14,6 @@ all: $(EXEC)
 endif
 
 $(EXEC): $(OBJS)
-	echo "Build_Name:"$(BUILD_NAME) 
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) $(LDFLAGS) -o $@ $(OBJS)
 
 install: all

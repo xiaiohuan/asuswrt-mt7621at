@@ -17,7 +17,6 @@
 <script type="text/javascript" src="/help.js"></script>
 <script type="text/javascript" src="/disk_functions.js"></script>
 <script type="text/javascript" src="/js/jquery.js"></script>
-<script type="text/javascript" src="/js/httpApi.js"></script>
 <style>
 #Aidisk_png{
   background: url(images/New_ui/USBExt/APP_list.png);
@@ -102,19 +101,14 @@ var wan_unit_orig = '<% nvram_get("wan_unit"); %>';
 
 function initial(){
 	show_menu();
-	//	https://www.asus.com/support/FAQ/114001/
-	httpApi.faqURL("114001", function(url){document.getElementById("faq").href=url;});
-	//	https://www.asus.com/support/FAQ/1016385/
-	httpApi.faqURL("1016385", function(url){document.getElementById("faq2").href=url;});
 
 	default_apps_array = [["AiDisk", "aidisk.asp", "<#AiDiskWelcome_desp1#>", "Aidisk_png", ""],
-			["<#Servers_Center#>", "mediaserver.asp", "<#UPnPMediaServer_Help#>", "server_png", ""],
+			["<#Servers_Center#>", tablink[4][1], "<#UPnPMediaServer_Help#>", "server_png", ""],
 			["<#Network_Printer_Server#>", "PrinterServer.asp", "<#Network_Printer_desc#>", "PrinterServer_png", ""],
 			["3G/4G", "Advanced_Modem_Content.asp", "<#HSDPAConfig_hsdpa_enable_hint1#>", "modem_png", ""],
 			["<#TimeMach#>", "Advanced_TimeMachine.asp", "<#TimeMach_enable_hint#>", "TimeMachine_png", "1.0.0.1"]];
 	
 	if(!media_support){
-		default_apps_array[1][1] = "Advanced_AiDisk_samba.asp";
 		default_apps_array[1].splice(2,1,"<#MediaServer_Help#>");
 	}
 	
@@ -124,21 +118,14 @@ function initial(){
 	if(!printer_support || noprinter_support)
 		default_apps_array = default_apps_array.del(default_apps_array.getIndexByValue2D("<#Network_Printer_Server#>")[0]);
 
-	if(sw_mode == 2 || sw_mode == 3 || sw_mode == 4 || !modem_support || nomodem_support || based_modelid == "4G-AC53U" || based_modelid == "4G-AC55U" || based_modelid == "4G-AC68U")
+	if(sw_mode == 2 || sw_mode == 3 || sw_mode == 4 || !modem_support || nomodem_support || based_modelid == "4G-AC53U"|| based_modelid == "4G-AC55U")
 		default_apps_array = default_apps_array.del(default_apps_array.getIndexByValue2D("3G/4G")[0]);
 
 	if(!timemachine_support)
 		default_apps_array = default_apps_array.del(default_apps_array.getIndexByValue2D("<#TimeMach#>")[0]);
 
-	/* MODELDEP */
-	if(based_modelid == "AC2900"){	//MODELDEP: AC2900(RT-AC86U)
-		default_apps_array = default_apps_array.del(default_apps_array.getIndexByValue2D("AiDisk")[0]);
-		default_apps_array = default_apps_array.del(default_apps_array.getIndexByValue2D("<#Network_Printer_Server#>")[0]);
-		default_apps_array = default_apps_array.del(default_apps_array.getIndexByValue2D("3G/4G")[0]);
-		default_apps_array = default_apps_array.del(default_apps_array.getIndexByValue2D("<#TimeMach#>")[0]);						
-	}	
-
 	trNum = default_apps_array.length;
+	calHeight(0);
 	
 	if(_apps_action == '' && 
 		(apps_state_upgrade == 4 || apps_state_upgrade == "") && 
@@ -156,6 +143,23 @@ function initial(){
 
 }
 
+function calHeight(_trNum){
+	document.getElementById("applist_table").style.height = "auto";
+
+	if(_trNum != 0)
+		_trNum = document.getElementById("applist_table").clientHeight;
+
+	var optionHeight = 52;
+	var manualOffSet = 28;
+	menu_height = Math.round(optionHeight*calculate_height - manualOffSet*calculate_height/14 - document.getElementById("tabMenu").clientHeight) - 18;
+	if(menu_height > _trNum){
+		if(menu_height < 580)
+			document.getElementById("applist_table").style.height = "580px";
+		else	
+			document.getElementById("applist_table").style.height = menu_height + "px";
+	}	
+}
+
 function update_appstate(e){
   $.ajax({
     url: '/update_appstate.asp',
@@ -169,6 +173,7 @@ function update_appstate(e){
 				return false;
 			else if(!check_appstate()){
       			setTimeout("update_appstate();", 1000);
+				calHeight(0);
 			}
 			else
       			setTimeout("update_applist();", 3000);
@@ -445,17 +450,12 @@ function show_apps(){
 	if(apps_array == "" && (appnet_support || appbase_support)){
 		apps_array = [["downloadmaster", "", "", "no", "no", "", "", "<#DM_EnableHint#>", "downloadmaster_png", "", "", ""],
 									["mediaserver", "", "", "no", "no", "", "", "", "mediaserver_png", "", "", ""]];
+		if(nodm_support)
+			apps_array[1][0] = "mediaserver2";
 
 		if(aicloudipk_support)
 			apps_array.push(["aicloud", "", "", "no", "no", "", "", "AiCloud 2.0 utilities", "aicloud_png", "", "", ""]);
 	}
-
-	/* MODELDEP */
-	if(based_modelid == "AC2900"){	//MODELDEP: AC2900(RT-AC86U)
-		var dm_idx = apps_array.getIndexByValue2D("downloadmaster");
-		if(dm_idx[1] != -1 && dm_idx != -1)
-			apps_array.splice(dm_idx[0], 1);
-	}	
 
 	if(!aicloudipk_support){
 		var aicloud_idx = apps_array.getIndexByValue2D("aicloud");
@@ -481,13 +481,16 @@ function show_apps(){
 			apps_array.splice(media2_idx[0], 1);
 	}
 	else{
-		var media_idx = apps_array.getIndexByValue2D("mediaserver2");
+		if(nodm_support)
+			var media_idx = apps_array.getIndexByValue2D("mediaserver");
+		else
+			var media_idx = apps_array.getIndexByValue2D("mediaserver2");
 
 		if(media_idx[1] != -1 && media_idx != -1)
 			apps_array.splice(media_idx[0], 1);
 
 		var media_idx = apps_array.getIndexByValue2D("mediaserver");
-		if(media_idx == -1 || media_idx[1] == -1){
+		if(!nodm_support && (media_idx == -1 || media_idx[1] == -1)){
 			var apps_len = apps_array.length;
 			apps_array[apps_len] = ["mediaserver", "", "", "no", "no", "", "", "", "mediaserver_png", "", "", ""];
 		}
@@ -513,7 +516,7 @@ function show_apps(){
 		else
 			htmlcode += '<div class="app_name"><a style="text-decoration: underline;" href="' + default_apps_array[i][1] + '">' + default_apps_array[i][0] + '</a></div>\n';
 		if(i ==3){
-			htmlcode += '<div class="app_desc">' + default_apps_array[i][2] + ' <a href="https://www.asus.com/event/networks_3G4G_support/" target="_blank" style="text-decoration:underline;"><#Support#></a></div>\n';
+			htmlcode += '<div class="app_desc">' + default_apps_array[i][2] + ' <a href="http://www.asus.com/event/networks_3G4G_support/" target="_blank" style="text-decoration:underline;">Support</a></div>\n';
 		}
 		else{
 			htmlcode += '<div class="app_desc">' + default_apps_array[i][2] + '</div>\n';
@@ -532,6 +535,8 @@ function show_apps(){
 
 			var header_info = [<% get_header_info(); %>];
 			var host_name = header_info[0].host;
+			if(host_name.split(":").length > 1)
+				host_name = host_name.split(":")[0];
 			apps_array[i][6] = "http://" + host_name + ":" + dm_http_port;
 
 			if(apps_array[i][0] == "aicloud") // append URL
@@ -608,7 +613,10 @@ function show_apps(){
 		if(apps_array[i][0] == "Download Master")
 			apps_array[i][0] = "downloadmaster";
 		else if(apps_array[i][0] == "Media Server"){
-			apps_array[i][0] = "mediaserver";
+			if(!nodm_support)
+				apps_array[i][0] = "mediaserver";
+			else
+				apps_array[i][0] = "mediaserver2";
 		}
 		else if(apps_array[i][0] == "AiCloud 2.0")
 			apps_array[i][0] = "aicloud";
@@ -636,6 +644,9 @@ function show_apps(){
 	
 			if(apps_array[i][0] == "downloadmaster"){
 				htmlcode += '<span class="app_action" onclick="divdisplayctrl(\'none\', \'none\', \'none\', \'\');"><#CTL_help#></span>\n';
+
+				cookie.set("dm_install", apps_array[i][3], 1000);
+				cookie.set("dm_enable", apps_array[i][4], 1000);
 			}
 
 			if(	cookie.get("apps_last") == apps_array[i][0] &&
@@ -668,6 +679,7 @@ function show_apps(){
 	document.getElementById("app_table").innerHTML = htmlcode;
 	divdisplayctrl("", "none", "none", "none");
 	stoppullstate = 1;
+	calHeight(1);
 	cookie.set("hwaddr", '<% nvram_get("lan_hwaddr"); %>', 1000);
 	cookie.set("apps_last", "", 1000);
 }
@@ -765,6 +777,7 @@ function show_partition(){
 
 		document.getElementById("partition_div").innerHTML = htmlcode;
 		document.getElementById("usbHint").innerHTML = "<#DM_Install_partition#> :";
+		calHeight(1);
 	});
 }
 
@@ -788,12 +801,15 @@ function divdisplayctrl(flag1, flag2, flag3, flag4){
 	}
 	else if(flag2 != "none"){ // partition list
 	 	setInterval(show_partition, 2000);
-		show_partition();
+		show_partition()
 		document.getElementById("return_btn").style.display = "";
+		calHeight(1);
 	}
 	else if(flag4 != "none"){ // help
 		var header_info = [<% get_header_info(); %>];
 		var host_name = header_info[0].host;
+		if(host_name.split(":").length > 1)
+			host_name = host_name.split(":")[0];
 		var _quick_dmlink = "http://" + host_name + ":" + dm_http_port;
 		
 		if(_dm_enable == "yes"){
@@ -804,7 +820,11 @@ function divdisplayctrl(flag1, flag2, flag3, flag4){
 		}	
 			
 		document.getElementById("return_btn").style.display = "";
+		calHeight(1);
 	}
+	else{ // status
+		calHeight(0);
+ 	}
 
 	if(flag4 == "none")
 		document.getElementById("usbHint").style.display = "";
@@ -835,7 +855,7 @@ function go_modem_page(usb_unit_flag){
 
 <iframe name="hidden_frame" id="hidden_frame" width="0" height="0" frameborder="0" scrolling="no"></iframe>
 <form method="post" name="app_form" action="/APP_Installation.asp">
-<input type="hidden" name="preferred_lang" value="<% nvram_get("preferred_lang"); %>" disabled>
+<input type="hidden" name="preferred_lang" id="preferred_lang" value="<% nvram_get("preferred_lang"); %>" disabled>
 <input type="hidden" name="firmver" value="<% nvram_get("firmver"); %>" disabled>
 <input type="hidden" name="apps_action" value="">
 <input type="hidden" name="apps_path" value="">
@@ -862,9 +882,8 @@ function go_modem_page(usb_unit_flag){
 	
     <td valign="top">
 		<div id="tabMenu" class="submenuBlock"></div>
-		<br>
 <!--=====Beginning of Main Content=====-->
-<div class="app_table app_table_usb" id="FormTitle">
+<div class="app_table" id="applist_table">
 <table>
 
   <tr>
@@ -923,10 +942,10 @@ function go_modem_page(usb_unit_flag){
 						<ul style="margin-left:10px;">
 							<br>
 							<li>
-								<a id="faq" href="" target="_blank" style="text-decoration:underline;font-size:14px;font-weight:bolder;color:#FFF"><#DM_title#> FAQ</a>
+								<a id="faq" href="http://www.asus.com/support/FAQ/1009773/" target="_blank" style="text-decoration:underline;font-size:14px;font-weight:bolder;color:#FFF">Download Master FAQ</a>
 							</li>
 							<li style="margin-top:10px;">
-								<a id="faq2" href="" target="_blank" style="text-decoration:underline;font-size:14px;font-weight:bolder;color:#FFF">Download Master Tool FAQ</a>
+								<a id="faq2" href="http://www.asus.com/support/FAQ/1016385/" target="_blank" style="text-decoration:underline;font-size:14px;font-weight:bolder;color:#FFF">Download Master Tool FAQ</a>
 							</li>
 							<li style="margin-top:10px;">
 								<a id="DMUtilityLink" href="http://dlcdnet.asus.com/pub/ASUS/wireless/RT-AC5300/UT_Download_Master_2228_Win.zip" style="text-decoration:underline;font-size:14px;font-weight:bolder;color:#FFF"><#DM_Download_Tool#></a>

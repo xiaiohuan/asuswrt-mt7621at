@@ -5,12 +5,12 @@
 #include <shutils.h>
 #include "rc.h"
 
-#ifdef RTCONFIG_PERMISSION_MANAGEMENT
-#include <PMS_DBAPIs.h>
-#endif
+#include "pc.h"
+
+
+const char iptables_chk_mac[] = "-m mac --mac-source";
 
 //#define BLOCKLOCAL
-char *datestr[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
 
 #if 0
 #define _dprintf(fmt, args...) do{ \
@@ -40,8 +40,6 @@ pc_event_s *initial_event(pc_event_s **target_e){
 	tmp_e->end_day = 0;
 	tmp_e->start_hour = 0;
 	tmp_e->end_hour = 0;
-	tmp_e->start_min = 0;
-	tmp_e->end_min = 0;
 	tmp_e->next = NULL;
 
 	return tmp_e;
@@ -84,12 +82,11 @@ pc_event_s *get_event_list(pc_event_s **target_list, char *target_string){
 			++i;
 			n_t = 0;
 
-			strlcpy((*follow_e_list)->e_name, word, 32);
+			strncpy((*follow_e_list)->e_name, word, 32);
 		}
 		else{
 			n_t = 1;
 
-			// start_day
 			ptr = word;
 			ptr_end = ptr+1;
 			bak = ptr_end[0];
@@ -97,7 +94,6 @@ pc_event_s *get_event_list(pc_event_s **target_list, char *target_string){
 			(*follow_e_list)->start_day = atoi(ptr);
 			ptr_end[0] = bak;
 
-			// end_day
 			ptr = word+1;
 			ptr_end = ptr+1;
 			bak = ptr_end[0];
@@ -105,7 +101,6 @@ pc_event_s *get_event_list(pc_event_s **target_list, char *target_string){
 			(*follow_e_list)->end_day = atoi(ptr);
 			ptr_end[0] = bak;
 
-			// start_hour
 			ptr = word+2;
 			ptr_end = ptr+2;
 			bak = ptr_end[0];
@@ -113,7 +108,6 @@ pc_event_s *get_event_list(pc_event_s **target_list, char *target_string){
 			(*follow_e_list)->start_hour = atoi(ptr);
 			ptr_end[0] = bak;
 
-			// end_hour
 			ptr = word+4;
 			ptr_end = ptr+2;
 			bak = ptr_end[0];
@@ -121,23 +115,20 @@ pc_event_s *get_event_list(pc_event_s **target_list, char *target_string){
 			(*follow_e_list)->end_hour = atoi(ptr);
 			ptr_end[0] = bak;
 
-			if((*follow_e_list)->start_hour >= 24){
+			if((*follow_e_list)->start_hour == 24){
 				(*follow_e_list)->start_day += 1;
-				(*follow_e_list)->start_hour -= 24;
+				if((*follow_e_list)->start_day == 7)
+					(*follow_e_list)->start_day = 0;
+				(*follow_e_list)->start_hour = 0;
 			}
 
-			if((*follow_e_list)->start_day >= 7){
-				(*follow_e_list)->start_day -= 7;
-			}
-
-			if((*follow_e_list)->end_hour >= 24){
+			// if end_hour == 24, don't set the flag: "--timestop".
+			/*if((*follow_e_list)->end_hour == 24){
 				(*follow_e_list)->end_day += 1;
-				(*follow_e_list)->end_hour -= 24;
-			}
-
-			if((*follow_e_list)->end_day >= 7){
-				(*follow_e_list)->end_day -= 7;
-			}
+				if((*follow_e_list)->end_day == 7)
+					(*follow_e_list)->end_day = 0;
+				(*follow_e_list)->end_hour = 0;
+			}//*/
 
 			while(*follow_e_list != NULL)
 				follow_e_list = &((*follow_e_list)->next);
@@ -153,13 +144,11 @@ pc_event_s *cp_event(pc_event_s **dest, const pc_event_s *src){
 		return NULL;
 	}
 
-	strlcpy((*dest)->e_name, src->e_name, sizeof((*dest)->e_name));
+	strcpy((*dest)->e_name, src->e_name);
 	(*dest)->start_day = src->start_day;
 	(*dest)->end_day = src->end_day;
 	(*dest)->start_hour = src->start_hour;
 	(*dest)->end_hour = src->end_hour;
-	(*dest)->start_min = src->start_min;
-	(*dest)->end_min = src->end_min;
 
 	return *dest;
 }
@@ -174,10 +163,12 @@ void print_event_list(pc_event_s *e_list){
 	i = 0;
 	for(follow_e = e_list; follow_e != NULL; follow_e = follow_e->next){
 		++i;
-		_dprintf("   %3dth event:\n", i);
-		_dprintf("        e_name: %s.\n", follow_e->e_name);
-		_dprintf("         start: %2d:%2d on %s.\n", follow_e->start_hour, follow_e->start_min, datestr[follow_e->start_day]);
-		_dprintf("           end: %2d:%2d on %s.\n", follow_e->end_hour, follow_e->end_min, datestr[follow_e->end_day]);
+		_dprintf(" %3dth event:\n", i);
+		_dprintf("      e_name: %s.\n", follow_e->e_name);
+		_dprintf("   start_day: %d.\n", follow_e->start_day);
+		_dprintf("     end_day: %d.\n", follow_e->end_day);
+		_dprintf("  start_hour: %d.\n", follow_e->start_hour);
+		_dprintf("    end_hour: %d.\n", follow_e->end_hour);
 		if(follow_e->next != NULL)
 			_dprintf("------------------------------\n");
 	}
@@ -199,7 +190,6 @@ pc_s *initial_pc(pc_s **target_pc){
 	memset(tmp_pc->device, 0, 32);
 	memset(tmp_pc->mac, 0, 18);
 	tmp_pc->events = NULL;
-	tmp_pc->timestamp = 0;
 	tmp_pc->next = NULL;
 
 	return tmp_pc;
@@ -222,59 +212,6 @@ void free_pc_list(pc_s **target_list){
 
 	return;
 }
-
-pc_s *cp_pc(pc_s **dest, const pc_s *src){
-	pc_event_s *follow_e, **follow_e_list;
-
-	if(initial_pc(dest) == NULL){
-		_dprintf("No memory!!(dest)\n");
-		return NULL;
-	}
-
-	(*dest)->enabled = src->enabled;
-	strlcpy((*dest)->device, src->device, sizeof((*dest)->device));
-	strlcpy((*dest)->mac, src->mac, sizeof((*dest)->mac));
-
-	follow_e_list = &((*dest)->events);
-	for(follow_e = src->events; follow_e != NULL; follow_e = follow_e->next){
-		cp_event(follow_e_list, follow_e);
-
-		while(*follow_e_list != NULL)
-			follow_e_list = &((*follow_e_list)->next);
-	}
-
-	return *dest;
-}
-
-#ifdef RTCONFIG_PERMISSION_MANAGEMENT
-/*
-	permission management copy the origin rule into separate mac
-	dev group use "src->device" and strip '@'
-*/
-static
-pc_s *dup_pc_with_mac(pc_s **dest, const pc_s *src, const char *mac){
-	pc_event_s *follow_e, **follow_e_list;
-
-	if(initial_pc(dest) == NULL){
-		_dprintf("No memory!!(dest)\n");
-		return NULL;
-	}
-
-	(*dest)->enabled = src->enabled;
-	strcpy((*dest)->device, src->device+1);   // strip '@'
-	strcpy((*dest)->mac, mac);                // new mac from permission group
-
-	follow_e_list = &((*dest)->events);
-	for(follow_e = src->events; follow_e != NULL; follow_e = follow_e->next){
-		cp_event(follow_e_list, follow_e);
-
-		while(*follow_e_list != NULL)
-			follow_e_list = &((*follow_e_list)->next);
-	}
-
-	return *dest;
-}
-#endif
 
 pc_s *get_all_pc_list(pc_s **pc_list){
 	char word[4096], *next_word;
@@ -307,7 +244,7 @@ pc_s *get_all_pc_list(pc_s **pc_list){
 			return *pc_list;
 		}
 
-		strlcpy(follow_pc->device, word, 32);
+		strncpy(follow_pc->device, word, 32);
 
 		follow_pc = follow_pc->next;
 	}
@@ -321,7 +258,7 @@ pc_s *get_all_pc_list(pc_s **pc_list){
 			return *pc_list;
 		}
 
-		strlcpy(follow_pc->mac, word, 18);
+		strncpy(follow_pc->mac, word, 18);
 
 		follow_pc = follow_pc->next;
 	}
@@ -340,47 +277,30 @@ pc_s *get_all_pc_list(pc_s **pc_list){
 		follow_pc = follow_pc->next;
 	}
 
-#ifdef RTCONFIG_PERMISSION_MANAGEMENT
-	follow_pc = *pc_list;
-	i = 0;
-	while (follow_pc != NULL)
-	{
-		i++;
-		//printf("[PC][%d] %s, %s, %s\n", i, follow_pc->device, follow_pc->mac, follow_pc->device+1);
-		if (follow_pc->device[0] == '@') {
-			int dev_num, group_num;
-			PMS_DEVICE_INFO_T *dev_list = NULL;
-			PMS_DEVICE_GROUP_INFO_T *group_list = NULL, *follow_group = NULL;
-
-			/* Get account / group list */
-			if (PMS_GetDeviceInfo(PMS_ACTION_GET_FULL, &dev_list, &group_list, &dev_num, &group_num) < 0) {
-				_dprintf("Can't read dev / group list\n");
-				break;
-			}
-
-			/* Get the mac list of certain group */
-			for (follow_group = group_list; follow_group != NULL; follow_group = follow_group->next) {
-				if (!strcmp(follow_group->name, (follow_pc->device)+1)) {
-					PMS_OWNED_INFO_T *owned_dev = follow_group->owned_device;
-					while (owned_dev != NULL) {
-						PMS_DEVICE_INFO_T *dev_owned = (PMS_DEVICE_INFO_T *) owned_dev->member;
-						//printf("[PC][%s] %s\n", follow_group->name, dev_owned->mac);
-						owned_dev = owned_dev->next;
-						dup_pc_with_mac(follow_pc_list, follow_pc, dev_owned->mac);
-						while (*follow_pc_list != NULL)
-							follow_pc_list = &((*follow_pc_list)->next);
-					}
-				}
-			}
-
-			/* Free device and group list*/
-			PMS_FreeDevInfo(&dev_list, &group_list);
-		}
-		follow_pc = follow_pc->next;
-	}
-#endif
-
 	return *pc_list;
+}
+
+pc_s *cp_pc(pc_s **dest, const pc_s *src){
+	pc_event_s *follow_e, **follow_e_list;
+
+	if(initial_pc(dest) == NULL){
+		_dprintf("No memory!!(dest)\n");
+		return NULL;
+	}
+
+	(*dest)->enabled = src->enabled;
+	strcpy((*dest)->device, src->device);
+	strcpy((*dest)->mac, src->mac);
+
+	follow_e_list = &((*dest)->events);
+	for(follow_e = src->events; follow_e != NULL; follow_e = follow_e->next){
+		cp_event(follow_e_list, follow_e);
+
+		while(*follow_e_list != NULL)
+			follow_e_list = &((*follow_e_list)->next);
+	}
+
+	return *dest;
 }
 
 void print_pc_list(pc_s *pc_list){
@@ -398,7 +318,6 @@ void print_pc_list(pc_s *pc_list){
 		_dprintf("    device: %s.\n", follow_pc->device);
 		_dprintf("       mac: %s.\n", follow_pc->mac);
 		print_event_list(follow_pc->events);
-		_dprintf(" timestamp: %llu.\n", follow_pc->timestamp);
 		_dprintf("******************************\n");
 	}
 }
@@ -409,7 +328,7 @@ pc_s *match_enabled_pc_list(pc_s *pc_list, pc_s **target_list, int enabled){
 	if(pc_list == NULL || target_list == NULL)
 		return NULL;
 
-	if(enabled != 0 && enabled != 1 && enabled != 2)
+	if(enabled != 0 && enabled != 1)
 		return NULL;
 
 	follow_target_list = target_list;
@@ -492,23 +411,27 @@ pc_s *match_daytime_pc_list(pc_s *pc_list, pc_s **target_list, int target_day, i
 // MAC address not in list -> ACCEPT.
 // MAC address in list and in time period -> ACCEPT.
 // MAC address in list and not in time period -> DROP.
-void config_daytime_string(pc_s *pc_list, FILE *fp, char *logaccept, char *logdrop, int temp){
-
-	pc_s *enabled_list = NULL, *follow_pc;
+void config_daytime_string(FILE *fp, char *logaccept, char *logdrop)
+{
+	pc_s *pc_list = NULL, *enabled_list = NULL, *follow_pc;
 	pc_event_s *follow_e;
 	char *lan_if = nvram_safe_get("lan_ifname");
+	char *datestr[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
 	int i;
-#ifdef BLOCKLOCAL
-	char *ftype;
-#endif
-	char *fftype;
+	char *default_policy, *ftype, *fftype;
 
-#ifdef BLOCKLOCAL
+	default_policy = logdrop;
 	ftype = logaccept;
-#endif
 	fftype = "PControls";
 
+	follow_pc = get_all_pc_list(&pc_list);
+	if(follow_pc == NULL){
+		_dprintf("Couldn't get the Parental-control rules correctly!\n");
+		return;
+	}
+
 	follow_pc = match_enabled_pc_list(pc_list, &enabled_list, 1);
+	free_pc_list(&pc_list);
 	if(follow_pc == NULL){
 		_dprintf("Couldn't get the enabled rules of Parental-control correctly!\n");
 		return;
@@ -519,64 +442,47 @@ void config_daytime_string(pc_s *pc_list, FILE *fp, char *logaccept, char *logdr
 		if(!follow_pc->mac[0])
 			chk_mac = "";
 
-//_dprintf("[PC] mac=%s\n", follow_pc->mac);
-#ifdef RTCONFIG_PERMISSION_MANAGEMENT
-		if (!strcmp(follow_pc->mac, "")) continue;
-#endif
-
 		for(follow_e = follow_pc->events; follow_e != NULL; follow_e = follow_e->next){
-			if(follow_e->start_day != follow_e->end_day && follow_e->end_day == 0)
-				follow_e->end_day = 7;
-
 			if(follow_e->start_day == follow_e->end_day){
-				if(follow_e->start_hour == follow_e->end_hour && follow_e->start_min == follow_e->end_min){ // whole week.
+				if(follow_e->start_hour == follow_e->end_hour){ // whole week.
 #ifdef BLOCKLOCAL
-					fprintf(fp, "-A FORWARD -i %s %s %s -j %s\n", lan_if, chk_mac, follow_pc->mac, ftype);
+					fprintf(fp, "-A FORWARD -i %s -m mac --mac-source %s -j %s\n", lan_if, follow_pc->mac, ftype);
 #endif
 					fprintf(fp, "-A FORWARD -i %s %s %s -j %s\n", lan_if, chk_mac, follow_pc->mac, fftype);
 				}
 				else{
 #ifdef BLOCKLOCAL
 					fprintf(fp, "-A INPUT -i %s -m time", lan_if);
-					if(follow_e->start_hour > 0 || follow_e->start_min > 0)
-						fprintf(fp, " --timestart %d:%d", follow_e->start_hour, follow_e->start_min);
-					if(follow_e->end_hour > 0 || follow_e->end_min > 0)
-						fprintf(fp, " --timestop %d:%d", follow_e->end_hour, follow_e->end_min);
-					fprintf(fp, DAYS_PARAM "%s %s %s -j %s\n", datestr[follow_e->start_day], chk_mac, follow_pc->mac, ftype);
+					if(follow_e->start_hour > 0)
+						fprintf(fp, " --timestart %d:0", follow_e->start_hour);
+					if(follow_e->end_hour < 24)
+						fprintf(fp, " --timestop %d:0", follow_e->end_hour);
+					fprintf(fp, DAYS_PARAM "%s -m mac --mac-source %s -j %s\n", datestr[follow_e->start_day], follow_pc->mac, ftype);
 #endif
 					fprintf(fp, "-A FORWARD -i %s -m time", lan_if);
-					if(follow_e->start_hour > 0 || follow_e->start_min > 0)
-						fprintf(fp, " --timestart %d:%d", follow_e->start_hour, follow_e->start_min);
-					if(follow_e->end_hour > 0 || follow_e->end_min > 0)
-						fprintf(fp, " --timestop %d:%d", follow_e->end_hour, follow_e->end_min);
+					if(follow_e->start_hour > 0)
+						fprintf(fp, " --timestart %d:0", follow_e->start_hour);
+					if(follow_e->end_hour < 24)
+						fprintf(fp, " --timestop %d:0", follow_e->end_hour);
 					fprintf(fp, DAYS_PARAM "%s %s %s -j %s\n", datestr[follow_e->start_day], chk_mac, follow_pc->mac, fftype);
-
-					if(follow_e->start_hour > follow_e->end_hour){
-#ifdef BLOCKLOCAL
-						fprintf(fp, "-A INPUT -i %s -m time" DAYS_PARAM, lan_if);
-						for(i = follow_e->start_day+1; i < follow_e->start_day+7; ++i)
-							fprintf(fp, "%s%s", (i == follow_e->start_day+1)?"":",", datestr[i%7]);
-						fprintf(fp, " %s %s -j %s\n", chk_mac, follow_pc->mac, ftype);
-#endif
-
-						fprintf(fp, "-A FORWARD -i %s -m time" DAYS_PARAM, lan_if);
-						for(i = follow_e->start_day+1; i < follow_e->start_day+7; ++i)
-							fprintf(fp, "%s%s", (i == follow_e->start_day+1)?"":",", datestr[i%7]);
-						fprintf(fp, " %s %s -j %s\n", chk_mac, follow_pc->mac, fftype);
-					}
 				}
 			}
-			else if(follow_e->start_day < follow_e->end_day){
+			else if(follow_e->start_day < follow_e->end_day
+					|| follow_e->end_day == 0
+					){ // start_day < end_day.
+				if(follow_e->end_day == 0)
+					follow_e->end_day += 7;
+
 				// first interval.
 #ifdef BLOCKLOCAL
 				fprintf(fp, "-A INPUT -i %s -m time", lan_if);
-				if(follow_e->start_hour > 0 || follow_e->start_min > 0)
-					fprintf(fp, " --timestart %d:%d", follow_e->start_hour, follow_e->start_min);
-				fprintf(fp, DAYS_PARAM "%s %s %s -j %s\n", datestr[follow_e->start_day], chk_mac, follow_pc->mac, ftype);
+				if(follow_e->start_hour > 0)
+					fprintf(fp, " --timestart %d:0", follow_e->start_hour);
+				fprintf(fp, DAYS_PARAM "%s -m mac --mac-source %s -j %s\n", datestr[follow_e->start_day], follow_pc->mac, ftype);
 #endif
 				fprintf(fp, "-A FORWARD -i %s -m time", lan_if);
-				if(follow_e->start_hour > 0 || follow_e->start_min > 0)
-					fprintf(fp, " --timestart %d:%d", follow_e->start_hour, follow_e->start_min);
+				if(follow_e->start_hour > 0)
+					fprintf(fp, " --timestart %d:0", follow_e->start_hour);
 				fprintf(fp, DAYS_PARAM "%s %s %s -j %s\n", datestr[follow_e->start_day], chk_mac, follow_pc->mac, fftype);
 
 				// middle interval.
@@ -585,7 +491,7 @@ void config_daytime_string(pc_s *pc_list, FILE *fp, char *logaccept, char *logdr
 					fprintf(fp, "-A INPUT -i %s -m time" DAYS_PARAM, lan_if);
 					for(i = follow_e->start_day+1; i < follow_e->end_day; ++i)
 						fprintf(fp, "%s%s", (i == follow_e->start_day+1)?"":",", datestr[i]);
-					fprintf(fp, " %s %s -j %s\n", chk_mac, follow_pc->mac, ftype);
+					fprintf(fp, " -m mac --mac-source %s -j %s\n", follow_pc->mac, ftype);
 #endif
 
 					fprintf(fp, "-A FORWARD -i %s -m time" DAYS_PARAM, lan_if);
@@ -595,15 +501,16 @@ void config_daytime_string(pc_s *pc_list, FILE *fp, char *logaccept, char *logdr
 				}
 
 				// end interval.
-				if(follow_e->end_hour > 0 || follow_e->end_min > 0){
+				if(follow_e->end_hour > 0){
 #ifdef BLOCKLOCAL
 					fprintf(fp, "-A INPUT -i %s -m time", lan_if);
-
-					fprintf(fp, " --timestop %d:%d", follow_e->end_hour, follow_e->end_min);
-					fprintf(fp, DAYS_PARAM "%s %s %s -j %s\n", datestr[follow_e->end_day], chk_mac, follow_pc->mac, ftype);
+					if(follow_e->end_hour < 24)
+						fprintf(fp, " --timestop %d:0", follow_e->end_hour);
+					fprintf(fp, DAYS_PARAM "%s -m mac --mac-source %s -j %s\n", datestr[follow_e->end_day], follow_pc->mac, ftype);
 #endif
 					fprintf(fp, "-A FORWARD -i %s -m time", lan_if);
-					fprintf(fp, " --timestop %d:%d", follow_e->end_hour, follow_e->end_min);
+					if(follow_e->end_hour < 24)
+						fprintf(fp, " --timestop %d:0", follow_e->end_hour);
 					fprintf(fp, DAYS_PARAM "%s %s %s -j %s\n", datestr[follow_e->end_day], chk_mac, follow_pc->mac, fftype);
 				}
 			}
@@ -612,64 +519,28 @@ void config_daytime_string(pc_s *pc_list, FILE *fp, char *logaccept, char *logdr
 		}
 
 		// MAC address in list and not in time period -> DROP.
-		if(!temp){
 #ifdef BLOCKLOCAL
-			fprintf(fp, "-A INPUT -i %s %s %s -j DROP\n", lan_if, chk_mac, follow_pc->mac);
+		fprintf(fp, "-A INPUT -i %s -m mac --mac-source %s -j DROP\n", lan_if, follow_pc->mac);
 #endif
-			fprintf(fp, "-A FORWARD -i %s %s %s -j DROP\n", lan_if, chk_mac, follow_pc->mac);
-		}
+		fprintf(fp, "-A FORWARD -i %s %s %s -j DROP\n", lan_if, chk_mac, follow_pc->mac);
 	}
 
 	free_pc_list(&enabled_list);
 }
 
-void config_pause_block_string(pc_s *pc_list, FILE *fp, char *logaccept, char *logdrop, int temp){
-
-	pc_s *enabled_list = NULL, *follow_pc;
-	char *lan_if = nvram_safe_get("lan_ifname");
-
-#ifdef BLOCKLOCAL
-	char *ftype;
-#endif
-	char *fftype;
-
-#ifdef BLOCKLOCAL
-	ftype = logaccept;
-#endif
-	fftype = "PControls";
-
-	follow_pc = match_enabled_pc_list(pc_list, &enabled_list, 2);
-	if(follow_pc == NULL){
-		_dprintf("Couldn't get the pause rules of Parental-control correctly!\n");
-		return;
-	}
-
-	for(follow_pc = enabled_list; follow_pc != NULL; follow_pc = follow_pc->next){
-		const char *chk_mac = iptables_chk_mac;
-		if(!follow_pc->mac[0])
-			chk_mac = "";
-
-//_dprintf("[PC] mac=%s\n", follow_pc->mac);
-#ifdef RTCONFIG_PERMISSION_MANAGEMENT
-		if (!strcmp(follow_pc->mac, "")) continue;
-#endif
-		// MAC address in list and not in time period -> DROP.
-		if(!temp){
-#ifdef BLOCKLOCAL
-			fprintf(fp, "-A INPUT -i %s %s %s -j DROP\n", lan_if, chk_mac, follow_pc->mac);
-#endif
-			fprintf(fp, "-A FORWARD -i %s %s %s -j DROP\n", lan_if, chk_mac, follow_pc->mac);
-		}
-	}
-
-	free_pc_list(&enabled_list);
-}
-
-int count_pc_rules(pc_s *pc_list, int enabled){
-	pc_s *enabled_list = NULL, *follow_pc;
+int count_pc_rules(void)
+{
+	pc_s *pc_list = NULL, *enabled_list = NULL, *follow_pc;
 	int count;
 
-	follow_pc = match_enabled_pc_list(pc_list, &enabled_list, enabled);
+	follow_pc = get_all_pc_list(&pc_list);
+	if(follow_pc == NULL){
+		_dprintf("Couldn't get the Parental-control rules correctly!\n");
+		return 0;
+	}
+
+	follow_pc = match_enabled_pc_list(pc_list, &enabled_list, 1);
+	free_pc_list(&pc_list);
 	if(follow_pc == NULL){
 		_dprintf("Couldn't get the enabled rules of Parental-control correctly!\n");
 		return 0;
@@ -683,7 +554,8 @@ int count_pc_rules(pc_s *pc_list, int enabled){
 	return count;
 }
 
-int pc_main(int argc, char *argv[]){
+int pc_main(int argc, char *argv[])
+{
 	pc_s *pc_list = NULL, *enabled_list = NULL, *daytime_list = NULL;
 
 	get_all_pc_list(&pc_list);
@@ -692,7 +564,7 @@ int pc_main(int argc, char *argv[]){
 		print_pc_list(pc_list);
 	}
 	else if((argc == 2 && !strcmp(argv[1], "enabled"))
-			|| (argc == 3 && !strcmp(argv[1], "enabled") && (!strcmp(argv[2], "0") || !strcmp(argv[2], "1") || !strcmp(argv[2], "2")))){
+			|| (argc == 3 && !strcmp(argv[1], "enabled") && (!strcmp(argv[2], "0") || !strcmp(argv[2], "1")))){
 		if(argc == 2)
 			match_enabled_pc_list(pc_list, &enabled_list, 1);
 		else
@@ -724,13 +596,13 @@ int pc_main(int argc, char *argv[]){
 		char logaccept[32], logdrop[32];
 
 		if(nvram_match("fw_log_x", "accept") || nvram_match("fw_log_x", "both"))
-			strlcpy(logaccept, "logaccept", sizeof(logaccept));
+			strcpy(logaccept, "logaccept");
 		else
-			strlcpy(logaccept, "ACCEPT", sizeof(logaccept));
+			strcpy(logaccept, "ACCEPT");
 		if(nvram_match("fw_log_x", "drop") || nvram_match("fw_log_x", "both"))
-			strlcpy(logdrop, "logdrop", sizeof(logdrop));
+			strcpy(logdrop, "logdrop");
 		else
-			strlcpy(logdrop, "DROP", sizeof(logdrop));
+			strcpy(logdrop, "DROP");
 
 		match_enabled_pc_list(pc_list, &enabled_list, 1);
 
@@ -739,7 +611,7 @@ int pc_main(int argc, char *argv[]){
 		free_pc_list(&enabled_list);
 	}
 	else if(argc == 2 && !strcmp(argv[1], "showrules")){
-		config_daytime_string(pc_list, stderr, "ACCEPT", "logdrop", 0);
+		config_daytime_string(stderr, "ACCEPT", "logdrop");
 	}
 	else{
 		printf("Usage: pc [show]\n"

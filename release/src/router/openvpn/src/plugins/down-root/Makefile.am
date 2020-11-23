@@ -8,8 +8,7 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/Makefile.in
 
 AM_CFLAGS = \
-	-I$(top_srcdir)/include \
-	$(OPTIONAL_CRYPTO_CFLAGS)
+	-I$(top_srcdir)/include
 
 if ENABLE_PLUGIN_DOWN_ROOT
 plugin_LTLIBRARIES = openvpn-plugin-down-root.la

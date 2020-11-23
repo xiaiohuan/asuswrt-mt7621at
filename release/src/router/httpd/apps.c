@@ -10,13 +10,14 @@
 
 char *alloc_string(const char *string){
 	char *buf;
-	size_t len;
+	int len;
 
 	len = strlen(string);
 	if((buf = (char *)malloc(len+1)) == NULL)
 		return NULL;
 
-	strlcpy(buf, string, len+1);
+	strcpy(buf, string);
+	buf[len] = 0;
 
 	return buf;
 }
@@ -220,7 +221,7 @@ _dprintf("httpd: get the Zero size of the third-party APP list.\n");
 		}
 
 		memset(line, 0, sizeof(line));
-		while(fgets(line, sizeof(line), fp) != NULL){
+		while(fgets(line, 128, fp) != NULL){
 			if((tmp_apps_name = get_status_field(line, FIELD_PACKAGE)) == NULL)
 				continue;
 

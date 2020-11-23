@@ -45,15 +45,18 @@ int do_account_authentication(const char *username, const char *password)
 	char *nvram_acc_list;
 	
 #if EMBEDDED_EANBLE
+
+#if 0
 	//- if file /etc/shadow exist.
 	if (access("/etc/shadow", R_OK) == 0 &&
 	    strcmp(username, nvram_get_http_username()) == 0 &&
 	    compare_passwd_in_shadow(username, password)) {
-		Cdbg(1, "login success\n");
-		return 1;
+	    Cdbg(1, "login success\n");
+	    return 1;
 	}
 
 	Cdbg(1, "login fail\n");
+#endif
 
 	char *a = nvram_get_acc_list();
 	if(a==NULL) return -1;

@@ -35,9 +35,6 @@
 					child == NULL && \
 					highest_seqnum == get_kernel_seqnum())
 
-#ifdef HND_ROUTER
-#define inline	
-#endif
 /*
  * These variables are accessed from throughout the code.
  *

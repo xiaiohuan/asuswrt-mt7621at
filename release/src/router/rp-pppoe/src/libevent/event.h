@@ -16,7 +16,7 @@
 *
 ***********************************************************************/
 
-#undef DEBUG_EVENT
+#define DEBUG_EVENT
 
 #ifndef INCLUDE_EVENT_H
 #define INCLUDE_EVENT_H 1

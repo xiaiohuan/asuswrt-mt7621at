@@ -60,13 +60,14 @@ var timezones = {
 	"420":"MST7_2",
 	"360":"CST6_2",
 	"300":"UTC5_1",
+	"270":"UTC4.30",
 	"240":"UTC4_1",
 	"210":"NST3.30DST",
 	"180":"UTC3",
-	"120":"UTC2",
+	"120":"NORO2DST",
 	"60":"UTC1",
 	"0":"GMT0",
-	"-60":"UTC-1_3",
+	"-60":"UTC-1_2",
 	"-120":"UTC-2_1",
 	"-180":"UTC-3_1",
 	"-210":"UTC-3.30DST",
@@ -96,17 +97,18 @@ var timezones_dst = {
 	"420":"MST7DST_1",
 	"360":"UTC6DST",
 	"300":"EST5DST",
+	"270":"UTC4.30",
 	"240":"AST4DST",
 	"210":"NST3.30DST",
 	"180":"EBST3DST_1",
-	"120":"UTC2",
+	"120":"NORO2DST",
 	"60":"EUT1DST",
 	"0":"GMT0DST_1",
 	"-60":"UTC-1DST_1",
 	"-120":"UTC-2DST",
 	"-180":"IST-3",
 	"-210":"UTC-3.30DST",
-	"-240":"UTC-4_1",
+	"-240":"UTC-4DST_2",
 	"-270":"UTC-4.30",
 	"-300":"UTC-5",
 	"-330":"UTC-5.30_1",
@@ -210,7 +212,7 @@ function QKWireless_load_body(){
 			setTimeout(function(){document.form.wl0_ssid.focus();}, 1);
 		}
 
-		if(smart_connect_support && (parent.document.QKform.sw_mode.value == "1" || parent.document.QKform.sw_mode.value == "3")){
+		if(smart_connect_support){
 			if('<% nvram_get("x_Setting"); %>' == '0')
 					document.form.smart_connect_t[0].checked = true;
 
@@ -236,7 +238,7 @@ function submitForm(){
 	var wl_confirm = 0;
 	//changeiuiBackground(1);
 
-		if(smart_connect_support && smartcon_skip_t == 0 && (parent.document.QKform.sw_mode.value == 1 || parent.document.QKform.sw_mode.value == 3)){
+		if(smart_connect_support && smartcon_skip_t == 0){
 			if(band5g_support){
 				//inputCtrl(document.form.wl1_ssid,1);
 				//inputCtrl(document.form.wl1_wpa_psk,1);
@@ -719,7 +721,7 @@ function submitForm(){
 			document.getElementById("wl2_key4").name = "wl2.1_key4";
 		}
 
-		if(sdk_7 || sdk_9){
+		if(sdk_7){
 			document.form.sw_mode.value = 3;
 			document.form.wlc_psta.value = 2;
 		}else{
@@ -799,7 +801,7 @@ function submitForm(){
 		document.form.http_passwd.disabled = false;
 	}
 
-	if(smart_connect_support && (document.form.sw_mode.value == "1" || document.form.sw_mode.value == "3")){
+	if(smart_connect_support){
 			if(document.form.smart_connect_t[0].checked == true){
 				document.form.smart_connect_x.value = 1;
 				document.form.wl1_wpa_psk.value = document.form.wl0_wpa_psk.value;
@@ -978,7 +980,7 @@ function gotoIndex_wireless(){
 		return false;
 	}
 	else
-		parent.location.href = '<% abs_index_page(); %>';
+		parent.location.href = '/index.asp';
 }
 
 var retValHandler = {
@@ -1121,11 +1123,9 @@ function change_smart_con(v){
 		document.getElementById("wl_unit_field_1").style.display = "none";
 		document.getElementById("wl_unit_field_2").style.display = "none";
 		document.getElementById("wl_unit_field_3").style.display = "none";
-		if(wl_info.band5g_2_support){
-			document.getElementById("wl_unit_field_4").style.display = "none";
-			document.getElementById("wl_unit_field_5").style.display = "none";
-			document.getElementById("wl_unit_field_6").style.display = "none";
-		}
+		document.getElementById("wl_unit_field_4").style.display = "none";
+		document.getElementById("wl_unit_field_5").style.display = "none";
+		document.getElementById("wl_unit_field_6").style.display = "none";
 		document.getElementById("wl0_desc_name").innerHTML = "Tri-band Smart Connect Security";
 		document.getElementById("wl0_desc_name").style = "padding-bottom:10px";
 		parent.document.getElementById("contentM").height = contentM_height_orig;
@@ -1133,11 +1133,9 @@ function change_smart_con(v){
 		document.getElementById("wl_unit_field_1").style.display = "";
 		document.getElementById("wl_unit_field_2").style.display = "";
 		document.getElementById("wl_unit_field_3").style.display = "";
-		if(wl_info.band5g_2_support){
-			document.getElementById("wl_unit_field_4").style.display = "";
-			document.getElementById("wl_unit_field_5").style.display = "";
-			document.getElementById("wl_unit_field_6").style.display = "";
-		}
+		document.getElementById("wl_unit_field_4").style.display = "";
+		document.getElementById("wl_unit_field_5").style.display = "";
+		document.getElementById("wl_unit_field_6").style.display = "";
 		document.getElementById("wl0_desc_name").innerHTML = "2.4 GHz - <#Security#>";
 		parent.document.getElementById("contentM").height = document.body.scrollHeight + 20;
 	}

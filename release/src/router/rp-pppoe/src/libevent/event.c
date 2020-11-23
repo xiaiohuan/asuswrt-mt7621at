@@ -20,13 +20,10 @@ static char const RCSID[] =
 #include "event.h"
 #include <stdlib.h>
 #include <errno.h>
-#include <time.h>
-#include <sys/syscall.h>
 
 static void DestroySelector(EventSelector *es);
 static void DestroyHandler(EventHandler *eh);
 static void DoPendingChanges(EventSelector *es);
-static int GetTime(struct timeval *tv);
 
 /**********************************************************************
 * %FUNCTION: Event_CreateSelector
@@ -149,7 +146,7 @@ Event_HandleEvent(EventSelector *es)
     }
 
     if (foundTimeoutEvent) {
-	GetTime(&now);
+	gettimeofday(&now, NULL);
 	/* Convert absolute timeout to relative timeout for select */
 	timeout.tv_usec = abs_timeout.tv_usec - now.tv_usec;
 	timeout.tv_sec = abs_timeout.tv_sec - now.tv_sec;
@@ -177,7 +174,7 @@ Event_HandleEvent(EventSelector *es)
 	}
     }
 
-    if (foundTimeoutEvent) GetTime(&now);
+    if (foundTimeoutEvent) gettimeofday(&now, NULL);
     errno_save = errno;
     es->nestLevel++;
 
@@ -323,7 +320,7 @@ Event_AddHandlerWithTimeout(EventSelector *es,
     if (!eh) return NULL;
 
     /* Convert time interval to absolute time */
-    GetTime(&now);
+    gettimeofday(&now, NULL);
 
     t.tv_sec += now.tv_sec;
     t.tv_usec += now.tv_usec;
@@ -376,7 +373,7 @@ Event_AddTimerHandler(EventSelector *es,
     if (!eh) return NULL;
 
     /* Convert time interval to absolute time */
-    GetTime(&now);
+    gettimeofday(&now, NULL);
 
     t.tv_sec += now.tv_sec;
     t.tv_usec += now.tv_usec;
@@ -584,7 +581,7 @@ Event_DebugMsg(char const *fmt, ...)
 
     if (!Event_DebugFP) return;
 
-    GetTime(&now);
+    gettimeofday(&now, NULL);
 
     fprintf(Event_DebugFP, "%03d.%03d ", (int) now.tv_sec % 1000,
 	    (int) now.tv_usec / 1000);
@@ -635,7 +632,7 @@ Event_ChangeTimeout(EventHandler *h, struct timeval t)
 	return;
     }
     /* Convert time interval to absolute time */
-    GetTime(&now);
+    gettimeofday(&now, NULL);
 
     t.tv_sec += now.tv_sec;
     t.tv_usec += now.tv_usec;
@@ -645,41 +642,4 @@ Event_ChangeTimeout(EventHandler *h, struct timeval t)
     }
 
     h->tmout = t;
-}
-
-/**********************************************************************
-* %FUNCTION: GetTime
-* %ARGUMENTS:
-*  now -- timeval
-* %RETURNS:
-*  0 if OK, -1 if there is an error
-* %DESCRIPTION:
-*  Gets monotonic time, if possible
-***********************************************************************/
-int
-GetTime(struct timeval *now)
-{
-    static int monotonic = -1;
-
-    if (monotonic) {
-#if defined(__NR_clock_gettime) && defined(CLOCK_MONOTONIC)
-	struct timespec ts;
-	int ret = syscall(__NR_clock_gettime, CLOCK_MONOTONIC, &ts);
-
-	if (now && ret == 0) {
-	    now->tv_sec = ts.tv_sec;
-	    now->tv_usec = ts.tv_nsec / 1000;
-	}
-
-	if (monotonic < 0)
-	    monotonic = (ret == 0);
-	if (monotonic)
-	    return ret;
-#else
-	monotonic = 0;
-#endif
-	EVENT_DEBUG(("Couldn't use monotonic clock source\n"));
-    }
-
-    return gettimeofday(now, NULL);
 }

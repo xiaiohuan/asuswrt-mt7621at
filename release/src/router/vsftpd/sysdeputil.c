@@ -23,7 +23,6 @@
  * Highly system dependent utilities - e.g. authentication, capabilities.
  */
 
-#include <sys/capability.h>
 #include "sysdeputil.h"
 #include "str.h"
 #include "sysutil.h"

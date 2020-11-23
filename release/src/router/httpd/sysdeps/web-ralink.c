@@ -286,7 +286,7 @@ char* GetBW(int BW)
 		case BW_40:
 			return "40M";
 
-#if defined(RTAC52U) || defined(RTAC51U) || defined(RTN54U) || defined(RTAC1200HP) || defined(RTAC54U) || defined(RTAC1200) || defined(RTAC1200GA1) || defined(RTAC1200GU)
+#if defined(RTAC52U) || defined(RTAC51U) || defined(RTN54U) || defined(RTAC1200HP) || defined(RTAC54U) 
 		case BW_80:
 			return "80M";
 #endif
@@ -311,7 +311,7 @@ char* GetPhyMode(int Mode)
 		case MODE_HTGREENFIELD:
 			return "GREEN";
 
-#if defined(RTAC52U) || defined(RTAC51U)  || defined(RTN54U) || defined(RTAC1200HP) || defined(RTAC54U) || defined(RTAC1200)  || defined(RTAC1200GA1) || defined(RTAC1200GU)
+#if defined(RTAC52U) || defined(RTAC51U)  || defined(RTN54U) || defined(RTAC1200HP) || defined(RTAC54U) 
 		case MODE_VHT:
 			return "VHT";
 #endif
@@ -400,7 +400,6 @@ ej_wl_status(int eid, webs_t wp, int argc, char_t **argv, int unit)
 	char word[256], *next;
 
 	foreach (word, nvram_safe_get("wl_ifnames"), next) {
-		SKIP_ABSENT_BAND_AND_INC_UNIT(ii);
 		retval += wl_status(eid, wp, argc, argv, ii);
 		retval += websWrite(wp, "\n");
 
@@ -439,7 +438,7 @@ wl_status(int eid, webs_t wp, int argc, char_t **argv, int unit)
 	if (nvram_match(strcat_r(prefix, "radio", tmp), "0"))
 	{
 		ret+=websWrite(wp, "%s radio is disabled\n",
-			wl_nband_name(nvram_pf_get(prefix, "nband")));
+			nvram_match(strcat_r(prefix, "nband", tmp), "1") ? "5 GHz" : "2.4 GHz");
 		return ret;
 	}
 #else
@@ -449,7 +448,7 @@ wl_status(int eid, webs_t wp, int argc, char_t **argv, int unit)
 		ret+=websWrite(wp, "2.4 GHz radio is disabled\n");
 #else
 		ret+=websWrite(wp, "%s radio is disabled\n",
-			wl_nband_name(nvram_pf_get(prefix, "nband")));
+			nvram_match(strcat_r(prefix, "nband", tmp), "1") ? "5 GHz" : "2.4 GHz");
 #endif
 		return ret;
 	}
@@ -461,7 +460,7 @@ wl_status(int eid, webs_t wp, int argc, char_t **argv, int unit)
 		ret+=websWrite(wp, "2.4 GHz radio is disabled\n");
 #else
 		ret+=websWrite(wp, "%s radio is disabled\n",
-			wl_nband_name(nvram_pf_get(prefix, "nband")));
+			nvram_match(strcat_r(prefix, "nband", tmp), "1") ? "5 GHz" : "2.4 GHz");
 #endif
 		return ret;
 	}
@@ -548,44 +547,23 @@ wl_status(int eid, webs_t wp, int argc, char_t **argv, int unit)
 	else
 		ret+=websWrite(wp, "OP Mode		: AP\n");
 
-#if defined(RTAC52U) || defined(RTAC51U) || defined(RTN54U)  || defined(RTAC1200HP) || defined(RTAC54U) || defined(RTAC1200) || defined(RTAC1200GA1) || defined(RTAC1200GU) || defined(RTAC85U) || defined(RTAC85P) || defined(MTK_REP) || defined(RTACRH26)
+#if defined(RTAC52U) || defined(RTAC51U) || defined(RTN54U)  || defined(RTAC1200HP) || defined(RTAC54U) 
 	if (unit == 1)
 	{
 		char *p = tmp;
-		size_t len = sizeof(tmp);
-
-		*tmp = '\0';
-		if(phy_mode & WMODE_A) {
-			strlcat(p, "/a", len);
-			p += 2;
-			len -= 2;
-		}
-		if(phy_mode & WMODE_B) {
-			strlcat(p, "/b", len);
-			p += 2;
-			len -= 2;
-		}
-		if(phy_mode & WMODE_G) {
-			strlcat(p, "/g", len);
-			p += 2;
-			len -= 2;
-		}
-		if(phy_mode & WMODE_GN) {
-			strlcat(p, "/n", len);	//N in 2G
-			p += 2;
-			len -= 2;
-		}
-		if(phy_mode & WMODE_AN) {
-			strlcat(p, "/n", len);	//N in 5G
-			p += 2;
-			len -= 2;
-		}
-		if(phy_mode & WMODE_AC) {
-			strlcat(p, "/ac", len);
-			p += 3;
-			len -= 3;
-		}
-		if(*tmp != '\0')
+		if(phy_mode & WMODE_A)
+			p += sprintf(p, "/a");
+		if(phy_mode & WMODE_B)
+			p += sprintf(p, "/b");
+		if(phy_mode & WMODE_G)
+			p += sprintf(p, "/g");
+		if(phy_mode & WMODE_GN)
+			p += sprintf(p, "/n");	//N in 2G
+		if(phy_mode & WMODE_AN)
+			p += sprintf(p, "/n");	//N in 5G
+		if(phy_mode & WMODE_AC)
+			p += sprintf(p, "/ac");
+		if(p != tmp)
 			ret+=websWrite(wp, "Phy Mode	: 11%s\n", tmp+1); // skip first '/'
 	}
 	else
@@ -863,8 +841,8 @@ unsigned int getAPPIN(int unit)
 int
 wl_wps_info(int eid, webs_t wp, int argc, char_t **argv, int unit)
 {
-	int i, j = -1, u = unit;
-	char tmpstr[128], tmpstr2[256];
+	int /*i,*/ j = -1, u = unit;
+	char tmpstr[128]/*, tmpstr2[256]*/;
 	WSC_CONFIGURED_VALUE result;
 	int retval=0;
 	struct iwreq wrq;
@@ -874,40 +852,26 @@ wl_wps_info(int eid, webs_t wp, int argc, char_t **argv, int unit)
 
 #if defined(RTCONFIG_WPSMULTIBAND)
 	for (j = -1; j < MAX_NR_WL_IF; ++j) {
-#if !defined(RTCONFIG_HAS_5G)
-		if (unit == 1)
-			continue;
-#endif
-#if !defined(RTCONFIG_HAS_5G_2)
-		if (unit == 2)
-			continue;
-#endif
-#if !defined(RTCONFIG_WIGIG)
-		if (unit == 3)
-			continue;
-#endif
 #endif
 		switch (j) {
 		case 0: /* fall through */
-		case 1: /* fall through */
-		case 2: /* fall through */
-		case 3: /* fall through */
+		case 1:
 			u = j;
-			snprintf(tag1, sizeof(tag1), "<wps_info%d>", j);
-			snprintf(tag2, sizeof(tag2), "</wps_info%d>", j);
+			sprintf(tag1, "<wps_info%d>", j);
+			sprintf(tag2, "</wps_info%d>", j);
 			break;
 		case -1: /* fall through */
 		default:
 			u = unit;
-			strlcpy(tag1, "<wps_info>", sizeof(tag1));
-			strlcpy(tag2, "</wps_info>", sizeof(tag2));
+			strcpy(tag1, "<wps_info>");
+			strcpy(tag2, "</wps_info>");
 		}
 
 		snprintf(prefix, sizeof(prefix), "wl%d_", u);
 		wrq.u.data.length = sizeof(WSC_CONFIGURED_VALUE);
 		wrq.u.data.pointer = (caddr_t) &result;
 		wrq.u.data.flags = 0;
-		strlcpy((char *)&result, "get_wsc_profile", sizeof(result));	/* FIXME */
+		strcpy((char *)&result, "get_wsc_profile");
 
 #if defined(RTCONFIG_WPSMULTIBAND)
 		if (!nvram_get(strcat_r(prefix, "ifname", tmp)))
@@ -948,7 +912,7 @@ wl_wps_info(int eid, webs_t wp, int argc, char_t **argv, int unit)
 
 		//5. DefaultKeyIdx
 		memset(tmpstr, 0, sizeof(tmpstr));
-		snprintf(tmpstr, sizeof(tmpstr), "%d", result.DefaultKeyIdx);
+		sprintf(tmpstr, "%d", result.DefaultKeyIdx);
 		retval += websWrite(wp, "%s%s%s\n", tag1, tmpstr, tag2);
 
 		//6. WPAKey
@@ -956,7 +920,7 @@ wl_wps_info(int eid, webs_t wp, int argc, char_t **argv, int unit)
 		memset(tmpstr, 0, sizeof(tmpstr));
 		for (i=0; i<64; i++)	// WPA key default length is 64 (defined & hardcode in driver)
 		{
-			snprintf(tmpstr, sizeof(tmpstr), "%s%c", tmpstr, result.WscWPAKey[i]);
+			sprintf(tmpstr, "%s%c", tmpstr, result.WscWPAKey[i]);
 		}
 		if (!strlen(tmpstr))
 			retval += websWrite(wp, "%sNone%s\n", tag1, tag2);
@@ -1042,11 +1006,6 @@ int ej_wl_sta_list_2g(int eid, webs_t wp, int argc, char_t **argv)
 
 	memset(mac, 0, sizeof(mac));
 
-#if defined(RTAC85U) || defined(RTAC85P) || defined(RTACRH26)
-	if (!nvram_get_int("wlready"))
-		goto exit;
-#endif
-
 	/* query wl for authenticated sta list */
 	memset(data, 0, sizeof(data));
 	wrq.u.data.pointer = data;
@@ -1084,7 +1043,7 @@ int ej_wl_sta_list_2g(int eid, webs_t wp, int argc, char_t **argv)
 		if (from_app == 0)
 			websWrite(wp, "[");
 
-		snprintf(mac, sizeof(mac), "%02X:%02X:%02X:%02X:%02X:%02X",
+		sprintf(mac, "%02X:%02X:%02X:%02X:%02X:%02X",
 				mp2->Entry[i].Addr[0], mp2->Entry[i].Addr[1],
 				mp2->Entry[i].Addr[2], mp2->Entry[i].Addr[3],
 				mp2->Entry[i].Addr[4], mp2->Entry[i].Addr[5]);
@@ -1142,11 +1101,6 @@ int ej_wl_sta_list_5g(int eid, webs_t wp, int argc, char_t **argv)
 
 	memset(mac, 0, sizeof(mac));
 
-#if defined(RTAC85U) || defined(RTAC85P) || defined(RTACRH26)
-	if (!nvram_get_int("wlready"))
-		goto exit;
-#endif
-
 	/* query wl for authenticated sta list */
 	memset(data, 0, sizeof(data));
 	wrq.u.data.pointer = data;
@@ -1184,7 +1138,7 @@ int ej_wl_sta_list_5g(int eid, webs_t wp, int argc, char_t **argv)
 		if (from_app == 0)
 			websWrite(wp, "[");
 
-		snprintf(mac, sizeof(mac), "%02X:%02X:%02X:%02X:%02X:%02X",
+		sprintf(mac, "%02X:%02X:%02X:%02X:%02X:%02X",
 				mp->Entry[i].Addr[0], mp->Entry[i].Addr[1],
 				mp->Entry[i].Addr[2], mp->Entry[i].Addr[3],
 				mp->Entry[i].Addr[4], mp->Entry[i].Addr[5]);
@@ -1227,160 +1181,6 @@ exit:
 	return 0;
 }
 
-int ej_get_wlstainfo_list(int eid, webs_t wp, int argc, char_t **argv)
-{
-	char word[64], *next;
-	int unit = 0;
-	int haveInfo = 0;
-
-	websWrite(wp, "{");
-
-	foreach (word, nvram_safe_get("wl_ifnames"), next) {
-		char tmp[128], prefix[] = "wlXXXXXXXXXX_";
-		struct iwreq wrq;
-		int i, j, s, firstRow;
-		char data[16384];
-		char mac[ETHER_ADDR_STR_LEN];
-		RT_802_11_MAC_TABLE_5G *mp;
-		RT_802_11_MAC_TABLE_2G *mp2;
-		char *name;
-		int rssi, cnt;
-		char alias[16];
-
-		SKIP_ABSENT_BAND_AND_INC_UNIT(unit);
-		snprintf(prefix, sizeof(prefix), "wl%d_", unit);
-		name = nvram_safe_get(strcat_r(prefix, "ifname", tmp));
-
-		/* query wl for authenticated sta list */
-		memset(data, 0, sizeof(data));
-		wrq.u.data.pointer = data;
-		wrq.u.data.length = sizeof(data);
-		wrq.u.data.flags = 0;
-		if (wl_ioctl(name, RTPRIV_IOCTL_GET_MAC_TABLE, &wrq) < 0)
-			goto exit;
-
-		/* build wireless sta list */
-		if (unit == 0) {
-			mp2 = (RT_802_11_MAC_TABLE_2G *)wrq.u.data.pointer;
-
-			for (i = 0; i < MAX_NO_MSSID; i++) {
-				firstRow = 1;
-				memset(alias, 0, sizeof(alias));
-
-				if (i == 0)
-					snprintf(alias, sizeof(alias), "%s", unit ? (unit == 2 ? "5G1" : "5G") : "2G");
-				else
-					snprintf(alias, sizeof(alias), "%s_%d", unit ? (unit == 2 ? "5G1" : "5G") : "2G", i);
-
-				for (j = 0; j<mp2->Num; j++) {
-					s = mp2->Entry[j].ApIdx;
-					if (i != s)
-						continue;
-
-					rssi = cnt = 0;
-					if (mp2->Entry[j].AvgRssi0) {
-						rssi += mp2->Entry[j].AvgRssi0;
-						cnt++;
-					}
-					if (mp2->Entry[j].AvgRssi1) {
-						rssi += mp2->Entry[j].AvgRssi1;
-						cnt++;
-					}
-					if (mp2->Entry[j].AvgRssi2) {
-						rssi += mp2->Entry[j].AvgRssi2;
-						cnt++;
-					}
-
-					if (firstRow == 1) {
-						if (haveInfo)
-							websWrite(wp, ",");
-						websWrite(wp, "\"%s\":[", alias);
-						firstRow = 0;
-						haveInfo = 1;
-					}
-					else
-						websWrite(wp, ",");
-
-					memset(mac, 0, sizeof(mac));
-					snprintf(mac, sizeof(mac), "%02X:%02X:%02X:%02X:%02X:%02X",
-							mp2->Entry[j].Addr[0], mp2->Entry[j].Addr[1],
-							mp2->Entry[j].Addr[2], mp2->Entry[j].Addr[3],
-							mp2->Entry[j].Addr[4], mp2->Entry[j].Addr[5]);
-					rssi = rssi / cnt;
-					websWrite(wp, "{\"mac\":\"%s\",\"rssi\":%d}", mac, rssi);
-				}
-
-				if (!firstRow)
-					websWrite(wp, "]");
-			}
-		}
-		else
-		{
-			mp = (RT_802_11_MAC_TABLE_5G *)wrq.u.data.pointer;
-
-			for (i = 0; i < MAX_NO_MSSID; i++) {
-				firstRow = 1;
-				memset(alias, 0, sizeof(alias));
-
-				if (i == 0)
-					snprintf(alias, sizeof(alias), "%s", unit ? (unit == 2 ? "5G1" : "5G") : "2G");
-				else
-					snprintf(alias, sizeof(alias), "%s_%d", unit ? (unit == 2 ? "5G1" : "5G") : "2G", i);
-
-				for (j = 0; j<mp->Num; j++) {
-					s = mp->Entry[j].ApIdx;
-					if (i != s)
-						continue;
-
-					rssi = cnt = 0;
-					if (mp->Entry[j].AvgRssi0) {
-						rssi += mp->Entry[j].AvgRssi0;
-						cnt++;
-					}
-					if (mp->Entry[j].AvgRssi1) {
-						rssi += mp->Entry[j].AvgRssi1;
-						cnt++;
-					}
-					if (mp->Entry[j].AvgRssi2) {
-						rssi += mp->Entry[j].AvgRssi2;
-						cnt++;
-					}
-
-					if (firstRow == 1) {
-						if (haveInfo)
-							websWrite(wp, ",");
-						websWrite(wp, "\"%s\":[", alias);
-						firstRow = 0;
-						haveInfo = 1;
-					}
-					else
-						websWrite(wp, ",");
-
-					memset(mac, 0, sizeof(mac));
-					snprintf(mac, sizeof(mac), "%02X:%02X:%02X:%02X:%02X:%02X",
-							mp->Entry[j].Addr[0], mp->Entry[j].Addr[1],
-							mp->Entry[j].Addr[2], mp->Entry[j].Addr[3],
-							mp->Entry[j].Addr[4], mp->Entry[j].Addr[5]);
-					rssi = rssi / cnt;
-					websWrite(wp, "{\"mac\":\"%s\",\"rssi\":%d}", mac, rssi);
-				}
-
-				if (!firstRow)
-					websWrite(wp, "]");
-			}
-		}
-
-		unit++;
-	}
-
-	/* error/exit */
-exit:
-
-	websWrite(wp, "}");
-
-	return 0;
-}
-
 int ej_wl_auth_list(int eid, webs_t wp, int argc, char_t **argv)
 {
 	struct iwreq wrq;
@@ -1412,7 +1212,7 @@ int ej_wl_auth_list(int eid, webs_t wp, int argc, char_t **argv)
 			websWrite(wp, ", ");
 		websWrite(wp, "[");
 
-		snprintf(mac, sizeof(mac), "%02X:%02X:%02X:%02X:%02X:%02X",
+		sprintf(mac, "%02X:%02X:%02X:%02X:%02X:%02X",
 				mp2->Entry[i].Addr[0], mp2->Entry[i].Addr[1],
 				mp2->Entry[i].Addr[2], mp2->Entry[i].Addr[3],
 				mp2->Entry[i].Addr[4], mp2->Entry[i].Addr[5]);
@@ -1446,7 +1246,7 @@ int ej_wl_auth_list(int eid, webs_t wp, int argc, char_t **argv)
 			websWrite(wp, ", ");
 		websWrite(wp, "[");
 
-		snprintf(mac, sizeof(mac), "%02X:%02X:%02X:%02X:%02X:%02X",
+		sprintf(mac, "%02X:%02X:%02X:%02X:%02X:%02X",
 				mp->Entry[i].Addr[0], mp->Entry[i].Addr[1],
 				mp->Entry[i].Addr[2], mp->Entry[i].Addr[3],
 				mp->Entry[i].Addr[4], mp->Entry[i].Addr[5]);
@@ -1494,7 +1294,7 @@ static int wl_scan(int eid, webs_t wp, int argc, char_t **argv, int unit)
 
 	snprintf(prefix, sizeof(prefix), "wl%d_", unit);
 	memset(data, 0x00, 255);
-	strlcpy(data, "SiteSurvey=1", sizeof(data));
+	strcpy(data, "SiteSurvey=1");
 	wrq.u.data.length = strlen(data)+1;
 	wrq.u.data.pointer = data;
 	wrq.u.data.flags = 0;
@@ -1517,7 +1317,7 @@ static int wl_scan(int eid, webs_t wp, int argc, char_t **argv, int unit)
 	sleep(1);
 	dbg(".\n\n");
 	memset(data, 0, 8192);
-	strlcpy(data, "", sizeof(data));
+	strcpy(data, "");
 	wrq.u.data.length = 8192;
 	wrq.u.data.pointer = data;
 	wrq.u.data.flags = 0;
@@ -1527,11 +1327,11 @@ static int wl_scan(int eid, webs_t wp, int argc, char_t **argv, int unit)
 		return 0;
 	}
 	memset(header, 0, sizeof(header));
-	//snprintf(header, sizeof(header), "%-3s%-33s%-18s%-8s%-15s%-9s%-8s%-2s\n", "Ch", "SSID", "BSSID", "Enc", "Auth", "Siganl(%)", "W-Mode", "NT");
+	//sprintf(header, "%-3s%-33s%-18s%-8s%-15s%-9s%-8s%-2s\n", "Ch", "SSID", "BSSID", "Enc", "Auth", "Siganl(%)", "W-Mode", "NT");
 #if 0// defined(RTN14U)
-	snprintf(header, sizeof(header), "%-4s%-33s%-18s%-9s%-16s%-9s%-8s%-4s%-5s\n", "Ch", "SSID", "BSSID", "Enc", "Auth", "Siganl(%)", "W-Mode"," WPS", " DPID");
+	sprintf(header, "%-4s%-33s%-18s%-9s%-16s%-9s%-8s%-4s%-5s\n", "Ch", "SSID", "BSSID", "Enc", "Auth", "Siganl(%)", "W-Mode"," WPS", " DPID");
 #else
-	snprintf(header, sizeof(header), "%-4s%-33s%-18s%-9s%-16s%-9s%-8s\n", "Ch", "SSID", "BSSID", "Enc", "Auth", "Siganl(%)", "W-Mode");
+	sprintf(header, "%-4s%-33s%-18s%-9s%-16s%-9s%-8s\n", "Ch", "SSID", "BSSID", "Enc", "Auth", "Siganl(%)", "W-Mode");
 #endif
 	dbg("\n%s", header);
 	if (wrq.u.data.length > 0)
@@ -1681,65 +1481,6 @@ ej_wl_scan_5g(int eid, webs_t wp, int argc, char_t **argv)
 	return wl_scan(eid, wp, argc, argv, 1);
 }
 
-const char *
-get_wifname(int band)
-{
-	if (band)
-		return WIF_5G;
-	else
-		return WIF_2G;
-}
-int
-getChannel(int band)
-{
-	int channel;
-	struct iw_range	range;
-	double freq;
-	struct iwreq wrq1;
-	struct iwreq wrq2;
-	if (wl_ioctl(get_wifname(band), SIOCGIWFREQ, &wrq1) < 0)
-		return 0;
-	char buffer[sizeof(iwrange) * 2];
-	bzero(buffer, sizeof(buffer));
-	wrq2.u.data.pointer = (caddr_t) buffer;
-	wrq2.u.data.length = sizeof(buffer);
-	wrq2.u.data.flags = 0;
-
-	if (wl_ioctl(get_wifname(band), SIOCGIWRANGE, &wrq2) < 0)
-		return 0;
-
-	if (ralink_get_range_info(&range, buffer, wrq2.u.data.length) < 0)
-		return 0;
-
-	freq = iw_freq2float(&(wrq1.u.freq));
-	if (freq < KILO)
-		channel = (int) freq;
-	else
-	{
-		channel = iw_freq_to_channel(freq, &range);
-		if (channel < 0)
-			return 0;
-	}
-	return channel;
-}
-int
-ej_wl_control_channel(int eid, webs_t wp, int argc, char_t **argv)
-{
-	int ret = 0;
-	int channel_24 = 0, channel_50 = 0;
-	if (!(channel_24 = getChannel(0)))
-	{
-		ret = websWrite(wp, "[\"0\"]");
-		return ret;
-	}
-	if (!(channel_50 = getChannel(1)))
-		ret = websWrite(wp, "[\"%d\", \"%d\"]", channel_24, 0);
-	else
-		ret = websWrite(wp, "[\"%d\", \"%d\"]", channel_24, channel_50);
-
-	return ret;
-}
-
 
 static int ej_wl_channel_list(int eid, webs_t wp, int argc, char_t **argv, int unit)
 {
@@ -1756,10 +1497,6 @@ static int ej_wl_channel_list(int eid, webs_t wp, int argc, char_t **argv, int u
 	if (country_code == NULL || strlen(country_code) != 2) return retval;
 
 	if (band != 0 && band != 1) return retval;
-
-#if defined(RTAC85U) || defined(RTAC85P) || defined(RTACRH26)
-	if (!nvram_get_int("wlready")) return retval;
-#endif
 
 	//try getting channel list via wifi driver first
 	if(get_channel_list_via_driver(unit, chList, sizeof(chList)) > 0)
@@ -1786,18 +1523,6 @@ ej_wl_channel_list_5g(int eid, webs_t wp, int argc, char_t **argv)
 	return ej_wl_channel_list(eid, wp, argc, argv, 1);
 }
 
-int
-ej_wl_channel_list_5g_2(int eid, webs_t wp, int argc, char_t **argv)
-{
-	return ej_wl_channel_list(eid, wp, argc, argv, 2);
-}
-
-int
-ej_wl_channel_list_60g(int eid, webs_t wp, int argc, char_t **argv)
-{
-	return ej_wl_channel_list(eid, wp, argc, argv, 3);
-}
-
 
 static int ej_wl_rate(int eid, webs_t wp, int argc, char_t **argv, int unit)
 {
@@ -1806,33 +1531,22 @@ static int ej_wl_rate(int eid, webs_t wp, int argc, char_t **argv, int unit)
 	char tmp[256], prefix[] = "wlXXXXXXXXXX_";
 	char *name;
 	char word[256], *next;
-	int unit_max = MAX_NR_WL_IF;
+	int unit_max = 0;
 	int rate=0;
 	int status;
 	char rate_buf[32];
-	int sw_mode = sw_mode();
+	int sw_mode = nvram_get_int("sw_mode");
 	int wlc_band = nvram_get_int("wlc_band");
-	int from_app = 0;
 
-	from_app = check_user_agent(user_agent);
+	sprintf(rate_buf, "0 Mbps");
 
-#ifdef RTCONFIG_CONCURRENTREPEATER
-	strlcpy(rate_buf, "auto", sizeof(rate_buf));
-#else
-	strlcpy(rate_buf, "0 Mbps", sizeof(rate_buf));	
-#endif
+	foreach (word, nvram_safe_get("wl_ifnames"), next)
+		unit_max++;
 
 	if (unit > (unit_max - 1))
 		goto ERROR;
-#if !defined(RTCONFIG_HAS_5G_2)
-	if (unit == 2)
-		goto ERROR;
-#endif
-#ifdef RTCONFIG_CONCURRENTREPEATER
-	if (sw_mode == SW_MODE_REPEATER || sw_mode == SW_MODE_HOTSPOT)
-#else	
+
 	if (wlc_band == unit && (sw_mode == SW_MODE_REPEATER || sw_mode == SW_MODE_HOTSPOT))
-#endif		
 		snprintf(prefix, sizeof(prefix), "wl%d.1_", unit);
 	else
 #if 0
@@ -1849,9 +1563,9 @@ static int ej_wl_rate(int eid, webs_t wp, int argc, char_t **argv, int unit)
 
 	rate = wrq.u.bitrate.value;
 	if ((rate == -1) || (rate == 0))
-		strlcpy(rate_buf, "auto", sizeof(rate_buf));
+		sprintf(rate_buf, "auto");
 	else
-		snprintf(rate_buf, sizeof(rate_buf), "%d Mbps", (rate / 1000000));
+		sprintf(rate_buf, "%d Mbps", (rate / 1000000));
 #else
 		goto ERROR;
 	name = nvram_safe_get(strcat_r(prefix, "ifname", tmp));
@@ -1870,14 +1584,11 @@ static int ej_wl_rate(int eid, webs_t wp, int argc, char_t **argv, int unit)
 	rate   = ((int*)tmp)[1];
 
 	if(status == 6)
-		snprintf(rate_buf, sizeof(rate_buf), "%d Mbps", rate);
+		sprintf(rate_buf, "%d Mbps", rate);
 #endif
 
 ERROR:
-	if(from_app == 0)
-		retval += websWrite(wp, "%s", rate_buf);
-	else
-		retval += websWrite(wp, "\"%s\"", rate_buf);
+	retval += websWrite(wp, "%s", rate_buf);
 	return retval;
 }
 
@@ -1885,7 +1596,7 @@ ERROR:
 int
 ej_wl_rate_2g(int eid, webs_t wp, int argc, char_t **argv)
 {
-	if(sw_mode() == SW_MODE_REPEATER)
+   	if(nvram_match("sw_mode", "2"))
 		return ej_wl_rate(eid, wp, argc, argv, 0);
 	else
 	   	return 0;
@@ -1894,20 +1605,10 @@ ej_wl_rate_2g(int eid, webs_t wp, int argc, char_t **argv)
 int
 ej_wl_rate_5g(int eid, webs_t wp, int argc, char_t **argv)
 {
-	if(sw_mode() == SW_MODE_REPEATER)
+   	if(nvram_match("sw_mode", "2"))
 		return ej_wl_rate(eid, wp, argc, argv, 1);
 	else
 	   	return 0;
-}
-
-int
-ej_nat_accel_status(int eid, webs_t wp, int argc, char_t **argv)
-{
-	int retval = 0;
-
-	retval += websWrite(wp, "%d", module_loaded("hw_nat"));
-
-	return retval;
 }
 
 #ifdef RTCONFIG_PROXYSTA

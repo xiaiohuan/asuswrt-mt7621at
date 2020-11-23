@@ -100,78 +100,7 @@ enum {
 	CPU_PORT=6,
 	P7_PORT=7,
 };
-#elif defined(RTN56UB1) || defined(RTN56UB2) || defined(RTAC65U)
-enum {
-	WAN_PORT=4,
-	LAN1_PORT=3,
-	LAN2_PORT=2,
-	LAN3_PORT=1,
-	LAN4_PORT=0,
-	P5_PORT=5,
-	CPU_PORT=6,
-	P7_PORT=7,
-};
-#define MT7621_GSW
-#elif defined(RTAC1200GA1)
-enum {
-	WAN_PORT=0,
-	LAN1_PORT=1,
-	LAN2_PORT=2,
-	LAN3_PORT=3,
-	LAN4_PORT=4,
-	P5_PORT=5,
-	CPU_PORT=6,
-	P7_PORT=7,
-};
-#define MT7621_GSW
-#elif defined(RTAC1200GU)
-enum {
-	WAN_PORT=0,
-	LAN1_PORT=1,
-	LAN2_PORT=2,
-	LAN3_PORT=3,
-	LAN4_PORT=4,
-	P5_PORT=5,
-	CPU_PORT=6,
-	P7_PORT=7,
-};
-#define MT7621_GSW
-#elif defined(RPAC87)
-enum {
-	WAN_PORT=4,
-	LAN1_PORT=3,
-	LAN2_PORT=2,
-	LAN3_PORT=1,
-	LAN4_PORT=0,
-	P5_PORT=5,
-	CPU_PORT=6,
-	P7_PORT=7,
-};
-#elif defined(RTAC85U)
-enum {
-	WAN_PORT=4,
-	LAN1_PORT=0,
-	LAN2_PORT=1,
-	LAN3_PORT=2,
-	LAN4_PORT=3,
-	P5_PORT=5,
-	CPU_PORT=6,
-	P7_PORT=7,
-};
-#define MT7621_GSW
-#elif defined(RTAC85P)  || defined(RTACRH26)
-enum {
-	WAN_PORT=0,
-	LAN1_PORT=1,
-	LAN2_PORT=2,
-	LAN3_PORT=3,
-	LAN4_PORT=4,
-	P5_PORT=5,
-	CPU_PORT=6,
-	P7_PORT=7,
-};
-#define MT7621_GSW
-#elif defined(RTN800HP)
+#elif defined(RTN56UB1) || defined(RTN56UB2)
 enum {
 	WAN_PORT=4,
 	LAN1_PORT=3,
@@ -257,13 +186,13 @@ static unsigned int get_wan_port_mask(int wan_unit)
 {
 	char nv[] = "wanXXXports_maskXXXXXX";
 
-	if (sw_mode() == SW_MODE_REPEATER)
+	if (nvram_get_int("sw_mode") == SW_MODE_REPEATER)
 		return 0;
 
 	if (wan_unit <= 0 || wan_unit >= WAN_UNIT_MAX)
-		strlcpy(nv, "wanports_mask", sizeof(nv));
+		strcpy(nv, "wanports_mask");
 	else
-		snprintf(nv, sizeof(nv), "wan%dports_mask", wan_unit);
+		sprintf(nv, "wan%dports_mask", wan_unit);
 
 	return nvram_get_int(nv);
 }
@@ -274,18 +203,12 @@ static unsigned int get_wan_port_mask(int wan_unit)
  */
 static unsigned int get_lan_port_mask(void)
 {
-	int sw_mode = sw_mode();
+	int sw_mode = nvram_get_int("sw_mode");
 	unsigned int m = nvram_get_int("lanports_mask");
 
 	if (sw_mode == SW_MODE_AP || __mediabridge_mode(sw_mode))
 		m = 0x1F;
 
-#if defined(RTCONFIG_RALINK_MT7621)
-	#ifdef RTCONFIG_CONCURRENTREPEATER
-	if (sw_mode == SW_MODE_REPEATER)
-		m = 0x3F;
-	#endif
-#endif
 	return m;
 }
 
@@ -333,7 +256,7 @@ int mt7621_esw_read(int offset, unsigned int *value)
 	if (value == NULL)
 		return -1;
 	reg.off = offset;
-	strlcpy(ifr.ifr_name, "eth2", IFNAMSIZ);
+	strncpy(ifr.ifr_name, "eth2", 5);
 	ifr.ifr_data = (void*) &reg;
 	if (-1 == ioctl(esw_fd, RAETH_ESW_REG_READ, &ifr)) {
 		_dprintf("%s: read esw register fail. errno %d (%s)\n", __func__, errno, strerror(errno));
@@ -353,7 +276,7 @@ int mt7621_reg_read(int offset, unsigned int *value)
          struct ifreq ifr;
          esw_reg reg;
          ra_mii_ioctl_data mii;
-         strlcpy(ifr.ifr_name, "eth2", IFNAMSIZ);
+         strncpy(ifr.ifr_name, "eth2", 5);
          ifr.ifr_data = &mii;
  
          mii.phy_id = 0x1f;
@@ -368,28 +291,6 @@ int mt7621_reg_read(int offset, unsigned int *value)
 	//printf("mt7621_reg_read()...offset=%4x, value=%8x\n", offset, *value);
          return 0;
 }   
-
-#if defined(RTAC85U) || defined(RTAC85P) || defined(RTN800HP) || defined(RTACRH26)
-int mt7621_phy_read(int offset, unsigned int *value)
-{
-         struct ifreq ifr;
-         esw_reg reg;
-         ra_mii_ioctl_data mii;
-         strlcpy(ifr.ifr_name, "eth2", IFNAMSIZ);
-         ifr.ifr_data = &mii;
- 
-         mii.phy_id = offset;
-         mii.reg_num = 1;
- 
-         if (-1 == ioctl(esw_fd, RAETH_MII_READ, &ifr)) {
-              perror("ioctl");
-              close(esw_fd);
-              return -1;
-         }
-         *value = mii.val_out;
-	 return 0;
-}   
-#endif
 #endif
 
 #if defined(RTCONFIG_RALINK_MT7620)
@@ -402,7 +303,7 @@ int mt7620_reg_write(int offset, int value)
 
 	reg.off = offset;
 	reg.val = value;
-	strlcpy(ifr.ifr_name, "eth2", IFNAMSIZ);
+	strncpy(ifr.ifr_name, "eth2", 5);
 	ifr.ifr_data = (void*) &reg;
 	if (-1 == ioctl(esw_fd, RAETH_ESW_REG_WRITE, &ifr)) {
 		perror("ioctl");
@@ -419,7 +320,7 @@ int mt7621_reg_write(int offset, int value)
         ra_mii_ioctl_data mii;
      
 	//printf("mt7621_reg_write()..offset=%4x, value=%8x\n", offset, value);
-        strlcpy(ifr.ifr_name, "eth2", IFNAMSIZ);
+        strncpy(ifr.ifr_name, "eth2", 5);
         ifr.ifr_data = &mii;
         mii.phy_id = 0x1f;
         mii.reg_num = offset;
@@ -693,7 +594,7 @@ int mt7621_vlan_unset(int vid)
 }
 
 
-#if defined(RTN14U) || defined(RTAC52U) || defined(RTAC51U) || defined(RTN11P) || defined(RTN300) || defined(RTN54U) || defined(RTAC1200HP) || defined(RTN56UB1) || defined(RTN56UB2) || defined(RTAC54U) || defined(RTAC1200GA1)  || defined(RTAC1200GU) || defined(RPAC87) || defined(RTAC85U) || defined(RTAC85P) || defined(RTAC65U) || defined(RTN800HP) || defined(RTACRH26)
+#if defined(RTN14U) || defined(RTAC52U) || defined(RTAC51U) || defined(RTN11P) || defined(RTN300) || defined(RTN54U) || defined(RTAC1200HP) || defined(RTN56UB1) || defined(RTN56UB2) || defined(RTAC54U)
 /**
  * Get TX or RX byte count of WAN and WANS_LAN
  * @unit:	WAN unit.
@@ -773,16 +674,10 @@ static void get_mt7621_esw_phy_linkStatus(unsigned int mask, unsigned int *linkS
 			continue;
 #if defined(RTCONFIG_RALINK_MT7620)
 		mt7620_reg_read((REG_ESW_MAC_PMSR_P0 + 0x100*i), &value);
-		value &= 0x1;
 #elif defined(RTCONFIG_RALINK_MT7621)
-#if defined(RTAC85U) || defined(RTAC85P) || defined(RTN800HP)  || defined(RTACRH26)
-		mt7621_phy_read(i, &value);
-		value = (value >> 2) & 0x1;
-#else
 		mt7621_reg_read((REG_ESW_MAC_PMSR_P0 + 0x100*i), &value);
+#endif		
 		value &= 0x1;
-#endif
-#endif
 	}
 	*linkStatus = value;
 
@@ -794,7 +689,7 @@ static void build_wan_lan_mask(int stb)
 	int unit;
 	int wanscap_lan = get_wans_dualwan() & WANSCAP_LAN;
 	int wans_lanport = nvram_get_int("wans_lanport");
-	int sw_mode = sw_mode();
+	int sw_mode = nvram_get_int("sw_mode");
 	char prefix[8], nvram_ports[20];
 
 	if (sw_mode == SW_MODE_AP || sw_mode == SW_MODE_REPEATER)
@@ -830,8 +725,8 @@ static void build_wan_lan_mask(int stb)
 	}
 
 	for (unit = WAN_UNIT_FIRST; unit < WAN_UNIT_MAX; ++unit) {
-		snprintf(prefix, sizeof(prefix), "%d", unit);
-		snprintf(nvram_ports, sizeof(nvram_ports), "wan%sports_mask", (unit == WAN_UNIT_FIRST)?"":prefix);
+		sprintf(prefix, "%d", unit);
+		sprintf(nvram_ports, "wan%sports_mask", (unit == WAN_UNIT_FIRST)?"":prefix);
 
 		if (get_dualwan_by_unit(unit) == WANS_DUALWAN_IF_WAN) {
 			nvram_set_int(nvram_ports, wan_mask);
@@ -867,7 +762,7 @@ static void config_mt7621_esw_LANWANPartition(int type)
 	int i, v, wans_lan_vid = 3, wanscap_wanlan = get_wans_dualwan() & (WANSCAP_WAN | WANSCAP_LAN);
 	int wanscap_lan = get_wans_dualwan() & WANSCAP_LAN;
 	int wans_lanport = nvram_get_int("wans_lanport");
-	int sw_mode = sw_mode();
+	int sw_mode = nvram_get_int("sw_mode");
 	unsigned int m;
 
 	if (switch_init() < 0)
@@ -1055,7 +950,7 @@ static void link_down_up_mt7621_PHY(unsigned int mask, int status, int inverse)
 	for (i = 0, m = mask; m && i < (NR_WANLAN_PORT+1); ++i, m >>= 1) {
 		if (!(m & 1))
 			continue;
-		snprintf(idx, sizeof(idx), "%d", i);
+		sprintf(idx, "%d", i);
 		eval("mii_mgr", "-s", "-p", idx, "-r", "0", "-v", value);
 	}
 }
@@ -1159,7 +1054,7 @@ static void set_Vlan_VID(int vid)
 {
 	char tmp[8];
 
-	snprintf(tmp, sizeof(tmp), "%d", vid);
+	sprintf(tmp, "%d", vid);
 	nvram_set("vlan_vid", tmp);
 }
 
@@ -1167,7 +1062,7 @@ static void set_Vlan_PRIO(int prio)
 {
 	char tmp[2];
 
-	snprintf(tmp, sizeof(tmp), "%d", prio);
+	sprintf(tmp, "%d", prio);
 	nvram_set("vlan_prio", tmp);
 }
 
@@ -1196,7 +1091,7 @@ static void initialize_Vlan(int stb_bitmask)
 	int wans_lan_vid = 3, wanscap_wanlan = get_wans_dualwan() & (WANSCAP_WAN | WANSCAP_LAN);
 	int wanscap_lan = get_wans_dualwan() & WANSCAP_LAN;
 	int wans_lanport = nvram_get_int("wans_lanport");
-	int sw_mode = sw_mode();
+	int sw_mode = nvram_get_int("sw_mode");
 
 	if (switch_init() < 0)
 		return;
@@ -1264,7 +1159,7 @@ static void initialize_Vlan(int stb_bitmask)
 	switch_fini();
 }
 
-#if defined(RTN14U) || defined(RTAC52U) || defined(RTAC51U) || defined(RTN11P) || defined(RTN300) || defined(RTN54U) || defined(RTAC1200HP) || defined(RTN56UB1) || defined(RTN56UB2) || defined(RTAC54U) || defined(RTAC1200GA1) || defined(RTAC1200GU) || defined(RPAC87) || defined(RTAC85U) || defined(RTAC85P) || defined(RTN800HP) || defined(RTACRH26)
+#if defined(RTN14U) || defined(RTAC52U) || defined(RTAC51U) || defined(RTN11P) || defined(RTN300) || defined(RTN54U) || defined(RTAC1200HP) || defined(RTN56UB1) || defined(RTN56UB2) || defined(RTAC54U)
 static void fix_up_hwnat_for_wifi(void)
 {
 	int i, j, m, r, v, isp_profile_hwnat_not_safe = 0;
@@ -1272,7 +1167,7 @@ static void fix_up_hwnat_for_wifi(void)
 	char bss[] = "wl0.1_bss_enabledXXXXXX";
 	char mode_x[] = "wl0_mode_xXXXXXX";
 	struct wifi_if_vid_s w = {
-#if defined(RTAC52U) || defined(RTAC51U) || defined(RTN54U) || defined(RTAC1200HP) || defined(RTN56UB1) || defined(RTN56UB2) || defined(RTAC54U) || defined(RTAC1200GA1) || defined(RTAC1200GU) || defined(RPAC87) || defined(RTAC85U) || defined(RTAC85P) || defined(RTN800HP) || defined(RTACRH26)
+#if defined(RTAC52U) || defined(RTAC51U) || defined(RTN54U) || defined(RTAC1200HP) || defined(RTN56UB1) || defined(RTN56UB2) || defined(RTAC54U)
 		.wl_vid = { 21, 43 },		/* DP_RA0  ~ DP_RA3:  21, 22, 23, 24;	DP_RAI0  ~ DP_RAI3:  43, 44, 45, 46 */
 		.wl_wds_vid = { 37, 59 },	/* DP_WDS0 ~ DP_WDS3: 37, 38, 39, 40;	DP_WDSI0 ~ DP_WDSI3: 59, 60, 61, 62 */
 #elif defined(RTN14U) || defined(RTN11P) || defined(RTN300)
@@ -1295,7 +1190,7 @@ static void fix_up_hwnat_for_wifi(void)
 	 * that come from WiFi interface and are injected to PPE is not swapped as zero.
 	 * This is used to workaround VirIfIdx=0 problem.
 	 */
-	strlcpy(portmap, "00000011", sizeof(portmap));	/* P6, P7 */
+	strcpy(portmap, "00000011");	/* P6, P7 */
 	/* Initial state, 2G/5G interface only. */
 	for (i = 0; i <= 1; ++i) {
 		if ((v = w.wl_vid[i]) <= 0)
@@ -1327,10 +1222,10 @@ static void fix_up_hwnat_for_wifi(void)
 		if ((v = w.wl_vid[i]) <= 0)
 			continue;
 
-		snprintf(mode_x, sizeof(mode_x), "wl%d_mode_x", i);
+		sprintf(mode_x, "wl%d_mode_x", i);
 		m = nvram_get_int(mode_x);	/* 1: WDS only */
 		for (j = 1; !isp_profile_hwnat_not_safe && j <= 3; ++j) {
-			snprintf(bss, sizeof(bss), "wl%d.%d_bss_enabled", i, j);
+			sprintf(bss, "wl%d.%d_bss_enabled", i, j);
 			if (m == 1 || !nvram_get_int(bss))
 				continue;
 
@@ -1349,7 +1244,7 @@ static void fix_up_hwnat_for_wifi(void)
 		if ((v = w.wl_wds_vid[i]) <= 0)
 			continue;
 
-		snprintf(mode_x, sizeof(mode_x), "wl%d_mode_x", i);
+		sprintf(mode_x, "wl%d_mode_x", i);
 		m = nvram_get_int(mode_x);
 		if (m != 1 && m != 2)
 			continue;
@@ -1409,7 +1304,7 @@ static void create_Vlan(int bitmask)
 	//set PVID & VLAN member port
 	value = (0x1 << 16) | (prio << 13) | vid;
 
-	strlcpy(portmap, "00000000", sizeof(portmap)); // init
+	strcpy(portmap, "00000000"); // init
 	untagmap = 0;
 	//convert port mapping
 	//for MT7621, port 5 is the part of wan-ports
@@ -2096,55 +1991,21 @@ void ATE_mt7621_esw_port_status(void)
 	}
 
 #if defined(PORT_W4321)
-	snprintf(buf, sizeof(buf), "W0=%C;L4=%C;L3=%C;L2=%C;L1=%C;",
+	sprintf(buf, "W0=%C;L4=%C;L3=%C;L2=%C;L1=%C;",
 		(pS.link[ WAN_PORT] == 1) ? (pS.speed[ WAN_PORT] == 2) ? 'G' : 'M': 'X',
 		(pS.link[LAN4_PORT] == 1) ? (pS.speed[LAN4_PORT] == 2) ? 'G' : 'M': 'X',
 		(pS.link[LAN3_PORT] == 1) ? (pS.speed[LAN3_PORT] == 2) ? 'G' : 'M': 'X',
 		(pS.link[LAN2_PORT] == 1) ? (pS.speed[LAN2_PORT] == 2) ? 'G' : 'M': 'X',
 		(pS.link[LAN1_PORT] == 1) ? (pS.speed[LAN1_PORT] == 2) ? 'G' : 'M': 'X');
 #else
-#if defined(RTCONFIG_CONCURRENTREPEATER) && defined(RPAC87)
-		snprintf(buf, sizeof(buf), "L1=%C",
-		(pS.link[ WAN_PORT] == 1) ? (pS.speed[ WAN_PORT] == 2) ? 'G' : 'M': 'X');
-#else
-	snprintf(buf, sizeof(buf), "W0=%C;L1=%C;L2=%C;L3=%C;L4=%C;",
+	sprintf(buf, "W0=%C;L1=%C;L2=%C;L3=%C;L4=%C;",
 		(pS.link[ WAN_PORT] == 1) ? (pS.speed[ WAN_PORT] == 2) ? 'G' : 'M': 'X',
 		(pS.link[LAN1_PORT] == 1) ? (pS.speed[LAN1_PORT] == 2) ? 'G' : 'M': 'X',
 		(pS.link[LAN2_PORT] == 1) ? (pS.speed[LAN2_PORT] == 2) ? 'G' : 'M': 'X',
 		(pS.link[LAN3_PORT] == 1) ? (pS.speed[LAN3_PORT] == 2) ? 'G' : 'M': 'X',
 		(pS.link[LAN4_PORT] == 1) ? (pS.speed[LAN4_PORT] == 2) ? 'G' : 'M': 'X');
 #endif
-#endif
 	puts(buf);
-
-	switch_fini();
-}
-
-
-void restore_esw(void)
-{
-	int i;
-
-	if (switch_init() < 0)
-		return;
-
-	for (i = 0; i < 8; i++) {
-#if defined(RTCONFIG_RALINK_MT7620)
-		mt7620_reg_write((REG_ESW_PORT_PCR_P0 + 0x100*i), 0xff0000);
-		mt7620_reg_write((REG_ESW_PORT_PVC_P0 + 0x100*i), 0x810000c0);
-#elif defined(RTCONFIG_RALINK_MT7621)
-		mt7621_reg_write((REG_ESW_PORT_PCR_P0 + 0x100*i), 0xff0000);
-		mt7621_reg_write((REG_ESW_PORT_PVC_P0 + 0x100*i), 0x810000c0);
-#endif		
-	}
-
-	//Clear mac table
-#if defined(RTCONFIG_RALINK_MT7620)
-	mt7620_reg_write(REG_ESW_WT_MAC_ATC, 0x8002);
-#elif defined(RTCONFIG_RALINK_MT7621)
-	mt7621_reg_write(REG_ESW_WT_MAC_ATC, 0x8002);
-#endif
-	usleep(5000);
 
 	switch_fini();
 }

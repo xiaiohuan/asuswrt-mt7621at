@@ -55,7 +55,7 @@ getpeername(0,0,&len);
 		],
 		[[
 #include <sys/types.h>
-#ifdef _WIN32
+#ifdef WIN32
 #include <ws2tcpip.h>
 #else
 #include <sys/socket.h>

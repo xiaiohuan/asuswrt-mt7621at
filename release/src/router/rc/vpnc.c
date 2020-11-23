@@ -41,9 +41,6 @@
 #include <arpa/inet.h>
 #include <net/if_arp.h>
 
-/* TODO: remove */
-#undef VPNC_LEGACY
-
 #define L2TP_VPNC_PID	"/var/run/l2tpd-vpnc.pid"
 #define L2TP_VPNC_CTRL	"/var/run/l2tpctrl-vpnc"
 #define L2TP_VPNC_CONF	"/tmp/l2tp-vpnc.conf"
@@ -100,13 +97,11 @@ start_vpnc(void)
 
 	umask(mask);
 
-#ifdef VPNC_LEGACY
 	/* route for pptp/l2tp's server */
 	if (nvram_match(strcat_r(wan_prefix, "proto", tmp), "pptp") || nvram_match(strcat_r(wan_prefix, "proto", tmp), "l2tp")) {
 		char *wan_ifname = nvram_safe_get(strcat_r(wan_prefix, "pppoe_ifname", tmp));
 		route_add(wan_ifname, 0, nvram_safe_get(strcat_r(wan_prefix, "gateway", tmp)), "0.0.0.0", "255.255.255.255");
 	}
-#endif
 
 	/* do not authenticate peer and do not use eap */
 	fprintf(fp, "noauth\n");
@@ -122,6 +117,7 @@ start_vpnc(void)
 			nvram_invmatch(strcat_r(prefix, "heartbeat_x", tmp), "") ?
 			nvram_safe_get(strcat_r(prefix, "heartbeat_x", tmp)) :
 			nvram_safe_get(strcat_r(prefix, "gateway_x", tmp)));
+		fprintf(fp, "vpnc 1\n");
 		/* see KB Q189595 -- historyless & mtu */
 		if (nvram_match(strcat_r(wan_prefix, "proto", tmp), "pptp") || nvram_match(strcat_r(wan_prefix, "proto", tmp), "l2tp"))
 			fprintf(fp, "nomppe-stateful mtu 1300\n");
@@ -204,13 +200,23 @@ start_vpnc(void)
 	fprintf(fp, "ip-pre-up-script %s\n", "/tmp/ppp/vpnc-ip-pre-up");
 	fprintf(fp, "auth-fail-script %s\n", "/tmp/ppp/vpnc-auth-fail");
 
+#if 0 /* unsupported */
+#ifdef RTCONFIG_IPV6
+	switch (get_ipv6_service()) {
+		case IPV6_NATIVE_DHCP:
+		case IPV6_MANUAL:
+			fprintf(fp, "+ipv6\n");
+			break;
+        }
+#endif
+#endif
+
 	/* user specific options */
 	fprintf(fp, "%s\n",
 		nvram_safe_get(strcat_r(prefix, "pppoe_options_x", tmp)));
 
 	fclose(fp);
 
-/* TODO: remove */
 #if 0
 	/* shut down previous instance if any */
 	stop_vpnc();
@@ -234,6 +240,7 @@ start_vpnc(void)
 			"section peer\n"
 			"port 1701\n"
 			"peername %s\n"
+			"vpnc 1\n"
 			"hostname %s\n"
 			"lac-handler sync-pppd\n"
 			"persist yes\n"
@@ -338,62 +345,51 @@ void update_vpnc_state(char *prefix, int state, int reason)
 int vpnc_update_resolvconf(void)
 {
 	FILE *fp;
-#ifdef NORESOLV /* dnsmasq uses no resolv.conf */
-	FILE *fp_servers;
-#endif
-	char tmp[100], prefix[] = "vpnc_";
-	char *wan_dns, *next;
+	char tmp[32];
+	char prefix[] = "vpnc_";
+	char word[256], *next;
 	int lock;
-#ifdef RTCONFIG_YANDEXDNS
-	int yadns_mode = nvram_get_int("yadns_enable_x") ? nvram_get_int("yadns_mode") : YADNS_DISABLED;
-#endif
+	char *wan_dns, *wan_xdns;
 
 	lock = file_lock("resolv");
 
 	if (!(fp = fopen("/tmp/resolv.conf", "w+"))) {
 		perror("/tmp/resolv.conf");
-		goto error;
+		file_unlock(lock);
+		return errno;
 	}
-#ifdef NORESOLV /* dnsmasq uses no resolv.conf */
-#ifdef RTCONFIG_YANDEXDNS
-	if (yadns_mode != YADNS_DISABLED) {
-		/* keep yandex.dns servers */
-		fp_servers = NULL;
-	} else
+
+#if 0 /* unsupported */
+#ifdef RTCONFIG_IPV6
+	/* Handle IPv6 DNS before IPv4 ones */
+	if (ipv6_enabled()) {
+		if ((get_ipv6_service() == IPV6_NATIVE_DHCP) && nvram_get_int(ipv6_nvname("ipv6_dnsenable"))) {
+			foreach(word, nvram_safe_get(ipv6_nvname("ipv6_get_dns")), next)
+				fprintf(fp, "nameserver %s\n", word);
+		} else
+		for (unit = 1; unit <= 3; unit++) {
+			sprintf(tmp, "ipv6_dns%d", unit);
+			next = nvram_safe_get(ipv6_nvname(tmp));
+			if (*next && strcmp(next, "0.0.0.0") != 0)
+				fprintf(fp, "nameserver %s\n", next);
+		}
+	}
 #endif
-	if (!(fp_servers = fopen("/tmp/resolv.dnsmasq", "w+"))) {
-		perror("/tmp/resolv.dnsmasq");
-		fclose(fp);
-		goto error;
-	}
 #endif
 
 	wan_dns = nvram_safe_get(strcat_r(prefix, "dns", tmp));
-	foreach(tmp, wan_dns, next) {
-		fprintf(fp, "nameserver %s\n", tmp);
-#ifdef NORESOLV /* dnsmasq uses no resolv.conf */
-#ifdef RTCONFIG_YANDEXDNS
-		if (yadns_mode != YADNS_DISABLED)
-			continue;
-#endif
-		fprintf(fp_servers, "server=%s\n", tmp);
-#endif
-	}
+	wan_xdns = nvram_safe_get(strcat_r(prefix, "xdns", tmp));
+
+	foreach(word, (*wan_dns ? wan_dns : wan_xdns), next)
+		fprintf(fp, "nameserver %s\n", word);
 
 	fclose(fp);
-#ifdef NORESOLV /* dnsmasq uses no resolv.conf */
-	if (fp_servers)
-		fclose(fp_servers);
-#endif
+
 	file_unlock(lock);
 
 	reload_dnsmasq();
 
 	return 0;
-
-error:
-	file_unlock(lock);
-	return -1;
 }
 
 void vpnc_add_firewall_rule()
@@ -414,11 +410,6 @@ void vpnc_add_firewall_rule()
 			eval("iptables", "-I", "FORWARD", "-p", "tcp", "--tcp-flags", "SYN,RST", "SYN", "-j", "TCPMSS", "--clamp-mss-to-pmtu");
 #ifdef RTCONFIG_BCMARM
 		else	/* mark tcp connection to bypass CTF */
-#ifdef HND_ROUTER
-			if (nvram_match("fc_disable", "0") && nvram_match("fc_pt_war", "1"))
-#else
-			if (nvram_match("ctf_disable", "0"))
-#endif
 			eval("iptables", "-t", "mangle", "-A", "FORWARD", "-p", "tcp", 
 				"-m", "state", "--state", "NEW","-j", "MARK", "--set-mark", "0x01/0x7");
 #endif
@@ -434,7 +425,6 @@ void vpnc_add_firewall_rule()
 void
 vpnc_up(char *vpnc_ifname)
 {
-#ifdef VPNC_LEGACY
 	int ret = 0;
 	char tmp[100], prefix[] = "vpnc_", wan_prefix[] = "wanXXXXXXXXXX_";
 	char *wan_ifname = NULL, *wan_proto = NULL;
@@ -476,31 +466,9 @@ vpnc_up(char *vpnc_ifname)
 	}
 	/* Remove route to the gateway - no longer needed */
 	route_del(vpnc_ifname, 0, nvram_safe_get(strcat_r(prefix, "gateway", tmp)), NULL, "255.255.255.255");
-#else /* VPNC_LEGACY */
-	char tmp[100], prefix[] = "vpnc_";
-	char *gateway = nvram_safe_get(strcat_r(prefix, "gateway", tmp));
-
-	/* Add default routes via VPN interface */
-	if (route_add(vpnc_ifname, 0, "0.0.0.0", gateway, "128.0.0.0") != 0)
-		goto error;
-	if (route_add(vpnc_ifname, 0, "128.0.0.0", gateway, "128.0.0.0") != 0) {
-		route_del(vpnc_ifname, 0, "0.0.0.0", gateway, "128.0.0.0");
-	error:
-		_dprintf("%s: fail to add route table\n", __FUNCTION__);
-		update_vpnc_state(prefix, WAN_STATE_STOPPED, WAN_STOPPED_REASON_IPGATEWAY_CONFLICT);
-		return;
-	}
-
-	/* Remove obsolete default route via VPN interface */
-	route_del(vpnc_ifname, 0, "0.0.0.0", NULL, "0.0.0.0");
-
-	/* Remove gateway route - no longer needed, avoid routing loops */
-	route_del(vpnc_ifname, 0, gateway, NULL, "255.255.255.255");
-#endif
 
 	/* Add dns servers to resolv.conf */
-	if (nvram_invmatch(strcat_r(prefix, "dns", tmp), ""))
-		vpnc_update_resolvconf();
+	vpnc_update_resolvconf();
 
 	/* Add firewall rules for VPN client */
 	vpnc_add_firewall_rule();
@@ -546,9 +514,15 @@ vpnc_ipup_main(int argc, char **argv)
 
 	strcpy(buf, "");
 	if ((value = getenv("DNS1")))
-		snprintf(buf, sizeof(buf), "%s", value);
+		sprintf(buf, "%s", value);
 	if ((value = getenv("DNS2")))
-		snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), "%s%s", strlen(buf) ? " " : "", value);
+		sprintf(buf + strlen(buf), "%s%s", strlen(buf) ? " " : "", value);
+
+	/* empty DNS means they either were not requested or peer refused to send them.
+	 * lift up underlying xdns value instead, keeping "dns" filled */
+	if (strlen(buf) == 0)
+		sprintf(buf, "%s", nvram_safe_get(strcat_r(prefix, "xdns", tmp)));
+
 	nvram_set(strcat_r(prefix, "dns", tmp), buf);
 
 	vpnc_up(vpnc_ifname);
@@ -573,11 +547,6 @@ void vpnc_del_firewall_rule()
 		eval("iptables", "-D", "FORWARD", "-p", "tcp", "--tcp-flags", "SYN,RST", "SYN", "-j", "TCPMSS", "--clamp-mss-to-pmtu");
 #ifdef RTCONFIG_BCMARM
 	else
-#ifdef HND_ROUTER
-		if (nvram_match("fc_disable", "0") && nvram_match("fc_pt_war", "1"))
-#else
-		if (nvram_match("ctf_disable", "0"))
-#endif
 		eval("iptables", "-t", "mangle", "-D", "FORWARD", "-p", "tcp", 
 			"-m", "state", "--state", "NEW","-j", "MARK", "--set-mark", "0x01/0x7");
 #endif
@@ -592,7 +561,6 @@ void vpnc_del_firewall_rule()
 void
 vpnc_down(char *vpnc_ifname)
 {
-#ifdef VPNC_LEGACY
 	char tmp[100], prefix[] = "vpnc_", wan_prefix[] = "wanXXXXXXXXXX_";
 	char *wan_ifname = NULL, *wan_proto = NULL;
 
@@ -656,7 +624,6 @@ vpnc_down(char *vpnc_ifname)
 #if !defined(CONFIG_BCMWL5) && defined(RTCONFIG_DUALWAN)
 	}
 #endif
-#endif /* VPNC_LEGACY */
 
 	/* Delete firewall rules for VPN client */
 	vpnc_del_firewall_rule();

@@ -16,9 +16,10 @@
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program (see the file COPYING included with this
+ *  distribution); if not, write to the Free Software Foundation, Inc.,
+ *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
 #ifdef HAVE_CONFIG_H
@@ -57,53 +58,43 @@ int
 daemon(int nochdir, int noclose)
 {
 #if defined(HAVE_FORK) && defined(HAVE_SETSID)
-    switch (fork())
-    {
-        case -1:
-            return (-1);
+	switch (fork()) {
+		case -1:
+			return (-1);
+		case 0:
+		break;
+		default:
+			exit(0);
+	}
 
-        case 0:
-            break;
+	if (setsid() == -1)
+		return (-1);
 
-        default:
-            exit(0);
-    }
+	if (!nochdir)
+		chdir("/");
 
-    if (setsid() == -1)
-    {
-        return (-1);
-    }
-
-    if (!nochdir)
-    {
-        chdir("/");
-    }
-
-    if (!noclose)
-    {
+	if (!noclose) {
 #if defined(HAVE_DUP) && defined(HAVE_DUP2)
-        int fd;
-        if ((fd = open("/dev/null", O_RDWR, 0)) != -1)
-        {
-            dup2(fd, 0);
-            dup2(fd, 1);
-            dup2(fd, 2);
-            if (fd > 2)
-            {
-                close(fd);
-            }
-        }
+		int fd;
+		if ((fd = open ("/dev/null", O_RDWR, 0)) != -1) {
+			dup2 (fd, 0);
+			dup2 (fd, 1);
+			dup2 (fd, 2);
+			if (fd > 2) {
+				close (fd);
+			}
+		}
 #endif
-    }
+	}
 
-    return 0;
-#else  /* if defined(HAVE_FORK) && defined(HAVE_SETSID) */
-    (void)nochdir;
-    (void)noclose;
-    errno = EFAULT;
-    return -1;
-#endif /* if defined(HAVE_FORK) && defined(HAVE_SETSID) */
+	return 0;
+#else
+	(void)nochdir;
+	(void)noclose;
+	errno = EFAULT;
+	return -1;
+#endif
 }
 
-#endif /* ifndef HAVE_DAEMON */
+#endif
 

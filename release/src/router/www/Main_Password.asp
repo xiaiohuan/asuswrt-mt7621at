@@ -16,8 +16,11 @@
 	background:rgba(40,52,55,0.1);
 }
 .wrapper{
-	background:url(images/New_ui/login_bg.png) no-repeat center center fixed;
-	background-size: cover;
+	background:url(images/New_ui/login_bg.png) #283437 no-repeat;
+	background-size: 1280px 1076px;
+	background-position: center 0%;
+	margin: 0px; 
+	background:#283437\9;
 }
 .title_name {
 	font-family:Arial;
@@ -264,7 +267,7 @@ function submitForm(){
 
 		var nextPage = decodeURIComponent('<% get_ascii_parameter("nextPage"); %>');
 		setTimeout(function(){
-			location.href = (nextPage != "") ? nextPage : "<% rel_index_page(); %>";
+			location.href = (nextPage != "") ? nextPage : "index.asp";
 		}, 3000);
 	}
 	else
@@ -295,10 +298,7 @@ var validator = {
 			return true;
 		}
 		else{
-			if(obj.value.length < 2)
-				showError("<#JS_short_username#>");
-			else
-				showError("<#JS_validhostname#>");
+			showError("<#JS_validhostname#>");
 			obj.value = "";
 			obj.focus();
 			obj.select();
@@ -314,15 +314,7 @@ var validator = {
 			obj.focus();
 			obj.select();
 			return false;
-		}
-		
-		if(obj.value.length > 16){
-            showError("<#JS_max_password#>");
-            obj.value = "";
-            obj.focus();
-            obj.select();
-            return false;
-        }
+		}		
 
 		if(obj.value.charAt(0) == '"'){
 			showError('<#JS_validstr1#> ["]');
@@ -364,14 +356,6 @@ var validator = {
 				return false;	
 		}	
 		
-		if(obj.value.length > 16){
-            showError("<#JS_max_password#>");
-            obj.value = "";
-            obj.focus();
-            obj.select();
-            return false;
-        }
-
 		var invalid_char = "";
 		for(var i = 0; i < obj.value.length; ++i){
 			if(obj.value.charAt(i) <= ' ' || obj.value.charAt(i) > '~'){
@@ -406,7 +390,7 @@ function showError(str){
 <input type="hidden" name="action_script" value="saveNvram">
 <input type="hidden" name="action_wait" value="0">
 <input type="hidden" name="current_page" value="Main_Login.asp">
-<input type="hidden" name="next_page" value="<% rel_index_page(); %>">
+<input type="hidden" name="next_page" value="index.asp">
 <input type="hidden" name="flag" value="">
 <input type="hidden" name="login_authorization" value="">
 <input name="foilautofill" style="display: none;" type="password">
@@ -460,7 +444,7 @@ function showError(str){
 					<tr style="height:72px;">
 						<td colspan="2">
 							<div style="margin:30px 0px 0px 78px;">
-								<input type="password" autocapitalize="off" autocomplete="off" value="" name="http_passwd_x" tabindex="2" class="form_input" maxlength="17" onkeyup="" onpaste="return false;"/ onBlur="" placeholder="<#PASS_new#>">
+								<input type="password" autocapitalize="off" autocomplete="off" value="" name="http_passwd_x" tabindex="2" class="form_input" maxlength="16" onkeyup="" onpaste="return false;"/ onBlur="" placeholder="<#PASS_new#>">
 							</div>
 						</td>
 					</tr>
@@ -472,7 +456,7 @@ function showError(str){
 					<tr style="height:72px;">
 						<td colspan="2">
 							<div style="margin:30px 0px 0px 78px;">
-								<input type="password" autocapitalize="off" autocomplete="off" value="" name="http_passwd_2_x" tabindex="3" class="form_input" maxlength="17" onkeyup="" onpaste="return false;"/ onBlur="" placeholder="<#Confirmpassword#>">
+								<input type="password" autocapitalize="off" autocomplete="off" value="" name="http_passwd_2_x" tabindex="3" class="form_input" maxlength="16" onkeyup="" onpaste="return false;"/ onBlur="" placeholder="<#Confirmpassword#>">
 							</div>
 						</td>
 					</tr>

@@ -79,13 +79,6 @@ function QKfinish_load_body(){
 		ISP_List_IPTV = RAW_ISP_PTM_List_IPTV;
 	}
 
-	if( document.form.dslx_transmode.value != document.form.dsltmp_transmode.value )
-	{
-		document.form.dslx_transmode.value = document.form.dsltmp_transmode.value;
-		parent.restartDSLSetting = true;
-		document.form.action_script.value = "restart_dsl_setting;".concat(document.form.action_script.value);
-	}
-
 	showHideIPTVList(false);
 	if(haveIPTVService()) {
 		showhide("iptv_manual_setting", 1);
@@ -94,7 +87,6 @@ function QKfinish_load_body(){
 		showhide("iptv_manual_setting", 0);
 	}
 	showhide("STBPortMsg", 0);
-
 }
 
 function submitForm(){
@@ -116,7 +108,6 @@ function submitForm(){
 		document.form.dslx_dhcp_clientid.value = "";
 		document.form.dslx_dhcp_hostname.value = "";
 	}
-
 	document.form.next_page.value = "/qis/QIS_wireless.htm";
 	if(document.form.dsltmp_cfg_iptv_enable.value == "1"){
 		if(valid_ISP())
@@ -158,14 +149,16 @@ function haveIPTVService() {
 
 function showHideIPTVList(iptv_enable) {
 	if(iptv_enable.checked) {
-		document.form.dsltmp_cfg_iptv_enable.value = "1";		
-		document.getElementById("ISP_table").style.display = "";
+		document.form.dsltmp_cfg_iptv_enable.value = "1";
+		document.getElementById("special_ISP_img").style.display = "";
+		document.getElementById("ISP_table").style.visibility = "visible";
 		showCountryList();
 		showISPList("");
 	}
 	else {
 		document.form.dsltmp_cfg_iptv_enable.value = "0";
-		document.getElementById("ISP_table").style.display = "none";
+		document.getElementById("special_ISP_img").style.display = "none";
+		document.getElementById("ISP_table").style.visibility = "hidden";
 		showhide("STBPortMsg", 0);
 	}
 }
@@ -312,7 +305,7 @@ function gotoHome() {
 		location.href = '/qis/QIS_wireless.htm';
 	}
 	else {
-		parent.location.href = "<% abs_index_page(); %>";
+		parent.location.href = '/index.asp';
 	}
 }
 
@@ -360,7 +353,6 @@ function gotoHome() {
 <input type="hidden" name="dslx_dhcp_hostname" value="">
 <input type="hidden" name="dsltmp_qis_pppoe_relay" value="0">
 <input type="hidden" name="dsltmp_transmode" value="">
-<input type="hidden" name="dslx_transmode" value="<% nvram_get("dslx_transmode"); %>">
 <div class="QISmain">
 	<table width="730px">
 		<tr>
@@ -403,7 +395,7 @@ function gotoHome() {
 -->
 	<div>
 	<table id="iptv_manual_setting" width="92%" border="0" align="left" cellpadding="3" cellspacing="0" style="margin-left:8%;">
-			<tr>
+			<tr id="specialISP_tr">
 				<td>
 					<input type="checkbox" id="specialisp" name="specialisp" onclick="showHideIPTVList(this);">
 					<label for="specialisp">
@@ -413,28 +405,42 @@ function gotoHome() {
 				</td>
 			</tr>
 	</table>
-	</div>	
+	</div>
 
-	<div style="margin-left:-80px;">
+	<div id="special_ISP_img_div"><img id="special_ISP_img" width="505px" height="105px" style="margin-top:0px;margin-left:73px;display:none;" src="/images/qis/border.png"></div>
+
+	<div style="margin-left:-80px;margin-top:-90px;">
 	<table id="ISP_table" class="FormTable" width="475px" border="0" align="center" cellpadding="3" cellspacing="0">
 		<tbody>
-			<tr>
+			<tr id="Country_tr">
 				<th width="40%"><#Manual_Setting_contry#></th>
 				<td>
 					<div id="CountryList"></div>
 				</td>
 			</tr>
-			<tr>
+			<!--tr id="City_tr">
+				<th width="40%"><#Manual_Setting_city#></th>
+				<td>
+					<div id="CityList"></div>
+				</td>
+			</tr-->
+			<tr id="ISP_tr">
 				<th width="40%"><#HSDPAConfig_ISP_itemname#> & <#qis_service#></th>
 				<td>
 					<div id="ISPnServiceList"></div>
 				</td>
 			</tr>
+			<!--tr id="Service_tr">
+				<th width="40%"><#qis_service#></th>
+				<td>
+					<div id="Service"></div>
+				</td>
+			</tr-->
 		</tbody>
 	</table>
 	</div>
 
-	<div class="apply_gen" style="margin-top:20px">
+	<div class="apply_gen" style="margin-top:30px">
 		<input type="button" id="prevButton" value="<#Manual_Setting_btn#>" onclick="gotoprev(document.form);" class="button_gen_long" >
 <!--
 		<input type="button" id="nextButton" value="Ethernet WAN" onclick="redirect_page('internet_type');" class="button_gen" >

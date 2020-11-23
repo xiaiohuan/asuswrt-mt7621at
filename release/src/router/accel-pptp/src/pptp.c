@@ -46,11 +46,10 @@
 #include "pppd/pathnames.h"
 
 #include "pptp_callmgr.h"
-#include "inststr.h"
-
 #include <net/if.h>
 #include <net/ethernet.h>
 #include <linux/if_pppox.h>
+#include "inststr.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -66,7 +65,6 @@ extern int new_style_driver;
 
 
 char *pptp_server = NULL;
-char *pptp_ifname = NULL;
 char *pptp_client = NULL;
 char *pptp_phone = NULL;
 int pptp_sock=-1;
@@ -79,14 +77,19 @@ static int callmgr_sock;
 static int pptp_fd;
 int call_ID;
 
+#ifdef RTCONFIG_VPNC
+int vpnc = 0;
+#endif
+
 //static struct in_addr get_ip_address(char *name);
-static int open_callmgr(int call_id, struct in_addr inetaddr, char *phonenr, int window);
-static void launch_callmgr(int call_is, struct in_addr inetaddr, char *phonenr, int window);
+static int open_callmgr(int call_id,struct in_addr inetaddr, char *phonenr,int window);
+static void launch_callmgr(int call_is,struct in_addr inetaddr, char *phonenr,int window);
 static int get_call_id(int sock, pid_t gre, pid_t pppd, u_int16_t *peer_call_id);
 
 /* Route manipulation */
 #define sin_addr(s) (((struct sockaddr_in *)(s))->sin_addr)
-static int route_add(const struct in_addr inetaddr, const char *ifname, struct rtentry *rt);
+#define route_msg warn
+static int route_add(const struct in_addr inetaddr, struct rtentry *rt);
 static int route_del(struct rtentry *rt);
 
 //static int pptp_devname_hook(char *cmd, char **argv, int doit);
@@ -94,8 +97,6 @@ static option_t Options[] =
 {
     { "pptp_server", o_string, &pptp_server,
       "PPTP Server" },
-    { "pptp_ifname", o_string, &pptp_ifname,
-      "PPTP Interface" },
     { "pptp_client", o_string, &pptp_client,
       "PPTP Client" },
     { "pptp_sock",o_int, &pptp_sock,
@@ -104,6 +105,10 @@ static option_t Options[] =
       "PPTP Phone number" },
     { "loglevel", o_int, &log_level,
       "debugging level (0=low, 1=default, 2=high)"},
+#ifdef RTCONFIG_VPNC
+    { "vpnc",o_int, &vpnc,
+      "VPN client" },
+#endif
     { NULL }
 };
 
@@ -146,20 +151,15 @@ static int pptp_start_client(void)
 	res_init();
 #endif
 	hostinfo=gethostbyname(pptp_server);
-	if (!hostinfo)
+  if (!hostinfo)
 	{
 		error("PPTP: Unknown host %s\n", pptp_server);
 		return -1;
 	}
 	dst_addr.sa_addr.pptp.sin_addr=*(struct in_addr*)hostinfo->h_addr;
 
-	memset(&rt, 0, sizeof(rt));
-	if (route_add(dst_addr.sa_addr.pptp.sin_addr, pptp_ifname, &rt) < 0 &&
-	    errno != EEXIST)
-	{
-		error("PPTP: failed to add host route (%s)\n", strerror(errno));
-		return -1;
-	}
+ 	memset(&rt, 0, sizeof(rt));
+ 	route_add(dst_addr.sa_addr.pptp.sin_addr, &rt);
 
 	{
 		int sock;
@@ -236,7 +236,6 @@ static int pptp_start_client(void)
 
 	return pptp_fd;
 }
-
 static int pptp_connect(void)
 {
 	if ((!pptp_server && !pptp_client) || (pptp_server && pptp_client))
@@ -253,8 +252,10 @@ static void pptp_disconnect(void)
 {
 	if (pptp_server) close(callmgr_sock);
 	close(pptp_fd);
-	if (pptp_server && !demand)
-		route_del(&rt);
+	//route_del(&rt); // don't delete, as otherwise it would try to use pppX in demand mode
+#ifdef RTCONFIG_VPNC
+	if (vpnc) route_del(&rt);
+#endif
 }
 
 static int open_callmgr(int call_id,struct in_addr inetaddr, char *phonenr,int window)
@@ -290,20 +291,20 @@ static int open_callmgr(int call_id,struct in_addr inetaddr, char *phonenr,int w
                     close (fd);
                     close(pptp_fd);
                     /* close the pty and gre in the call manager */
-                    //close(pty_fd);
+                   // close(pty_fd);
                     //close(gre_fd);
-                    launch_callmgr(call_id, inetaddr, phonenr, window);
+                    launch_callmgr(call_id,inetaddr, phonenr,window);
                 }
                 default: /* parent */
                     waitpid(pid, &status, 0);
                     if (WIFEXITED(status))
                         status = WEXITSTATUS(status);
                     if (status!= 0)
-                    {
-                        close(fd);
-                        error("Call manager exited with error %d", status);
-                        return -1;
-                    }
+		    {
+			close(fd);
+			error("Call manager exited with error %d", status);
+			return -1;
+		    }
                     break;
             }
             sleep(1);
@@ -380,8 +381,10 @@ static int get_call_id(int sock, pid_t gre, pid_t pppd,
 
 void plugin_init(void)
 {
-    if (!ppp_available() && !new_style_driver)
-	fatal("Kernel doesn't support ppp_generic - needed for PPTP");
+    /*if (!ppp_available() && !new_style_driver)
+    {
+				fatal("Linux kernel does not support PPP -- are you running 2.4.x?");
+    }*/
 
     add_options(Options);
 
@@ -394,22 +397,17 @@ void plugin_init(void)
 
 /* Route manipulation */
 static int
-route_ctrl(int ctrl, void *arg)
+route_ctrl(int ctrl, struct rtentry *rt)
 {
-	int fd, ret, err;
+	int s;
 
 	/* Open a raw socket to the kernel */
-	fd = socket(AF_INET, SOCK_DGRAM, 0);
-	if (fd < 0)
-		return -1;
+	if ((s = socket(AF_INET, SOCK_DGRAM, 0)) < 0 || ioctl(s, ctrl, rt) < 0)
+		route_msg("%s: %s", __FUNCTION__, strerror(errno));
+	else errno = 0;
 
-	ret = ioctl(fd, ctrl, arg);
-	err = errno;
-
-	close(fd);
-
-	errno = err;
-	return ret;
+	close(s);
+	return errno;
 }
 
 static int
@@ -424,28 +422,33 @@ route_del(struct rtentry *rt)
 }
 
 static int
-route_add(const struct in_addr inetaddr, const char *ifname, struct rtentry *rt)
+route_add(const struct in_addr inetaddr, struct rtentry *rt)
 {
-	struct ifreq ifr;
-	char buf[256], dev[64];
+	char buf[256], dev[64], rdev[64];
 	u_int32_t dest, mask, gateway, flags, bestmask = 0;
-	int ret, metric, err;
+	int metric;
 
 	FILE *f = fopen("/proc/net/route", "r");
-	if (f == NULL)
+	if (f == NULL) {
+		route_msg("%s: /proc/net/route: %s", strerror(errno), __FUNCTION__);
 		return -1;
+	}
 
-	memset(&ifr, 0, sizeof(ifr));
+	rt->rt_gateway.sa_family = 0;
 
 	while (fgets(buf, sizeof(buf), f))
 	{
 		if (sscanf(buf, "%63s %x %x %x %*s %*s %d %x", dev, &dest,
-			   &gateway, &flags, &metric, &mask) != 6)
+			&gateway, &flags, &metric, &mask) != 6)
 			continue;
 		if ((flags & RTF_UP) == (RTF_UP) && (inetaddr.s_addr & mask) == dest &&
-		    (dest || (!ifname || strcmp(dev, ifname) == 0)))
+#ifdef RTCONFIG_VPNC
+		    (dest || strncmp(dev, "ppp", 3) || vpnc) /* avoid default via pppX to avoid on-demand loops*/)
+#else
+		    (dest || strncmp(dev, "ppp", 3)) /* avoid default via pppX to avoid on-demand loops*/)
+#endif
 		{
-			if ((mask | bestmask) == bestmask && *ifr.ifr_name)
+			if ((mask | bestmask) == bestmask && rt->rt_gateway.sa_family)
 				continue;
 			bestmask = mask;
 
@@ -453,8 +456,7 @@ route_add(const struct in_addr inetaddr, const char *ifname, struct rtentry *rt)
 			rt->rt_gateway.sa_family = AF_INET;
 			rt->rt_flags = flags;
 			rt->rt_metric = metric;
-			strncpy(ifr.ifr_name, dev, IFNAMSIZ);
-			ifr.ifr_name[IFNAMSIZ - 1] = '\0';
+			strncpy(rdev, dev, sizeof(rdev));
 
 			if (mask == INADDR_BROADCAST)
 				break;
@@ -464,9 +466,9 @@ route_add(const struct in_addr inetaddr, const char *ifname, struct rtentry *rt)
 	fclose(f);
 
 	/* check for no route */
-	if (*ifr.ifr_name == '\0')
+	if (rt->rt_gateway.sa_family != AF_INET) 
 	{
-		errno = EHOSTUNREACH;
+		/* route_msg("%s: no route to host", __FUNCTION__); */
 		return -1;
 	}
 
@@ -474,7 +476,7 @@ route_add(const struct in_addr inetaddr, const char *ifname, struct rtentry *rt)
 	 * add if missing based on the existing routes */
 	if (rt->rt_flags & RTF_HOST)
 	{
-		errno = EEXIST;
+		/* route_msg("%s: not adding existing route", __FUNCTION__); */
 		return -1;
 	}
 
@@ -488,33 +490,18 @@ route_add(const struct in_addr inetaddr, const char *ifname, struct rtentry *rt)
 	rt->rt_flags |= RTF_UP | RTF_HOST;
 
 	rt->rt_metric++;
-	rt->rt_dev = strdup(ifr.ifr_name);
+	rt->rt_dev = strdup(rdev);
 
 	if (!rt->rt_dev)
 	{
-		errno = ENOMEM;
+		/* route_msg("%s: no memory", __FUNCTION__); */
 		return -1;
 	}
 
-	ret = route_ctrl(SIOCADDRT, rt);
-	err = errno;
-	if (ret < 0 && (errno == ENETUNREACH || errno == ESRCH) &&
-	    sin_addr(&rt->rt_gateway).s_addr &&
-	    route_ctrl(SIOCGIFFLAGS, &ifr) == 0 && (ifr.ifr_flags & IFF_POINTOPOINT))
-	{
-		/* Try to add direct route if gateway is not directly reachable.
-		 * Should be safe over point-to-point interfaces */
-		sin_addr(&rt->rt_gateway).s_addr = INADDR_ANY;
-		rt->rt_flags &= ~RTF_GATEWAY;
-		ret = route_ctrl(SIOCADDRT, rt);
-		err = errno;
-	}
-
-	if (ret == 0)
+	if (!route_ctrl(SIOCADDRT, rt))
 		return 0;
 
 	free(rt->rt_dev), rt->rt_dev = NULL;
 
-	errno = err;
 	return -1;
 }

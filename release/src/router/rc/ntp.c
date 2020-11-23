@@ -59,9 +59,6 @@ static void ntp_service()
 #ifdef RTCONFIG_DISK_MONITOR
 		notify_rc("restart_diskmon");
 #endif
-#ifdef RTCONFIG_UUPLUGIN
-		exec_uu();
-#endif
 	}
 }
 
@@ -130,7 +127,7 @@ int ntp_main(int argc, char *argv[])
 	pid_t pid;
 	char *args[] = {"ntpclient", "-h", server, "-i", "3", "-l", "-s", NULL};
 
-	strlcpy(server, nvram_safe_get("ntp_server0"), sizeof(server));
+	strcpy(server, nvram_safe_get("ntp_server0"));
 
 	fp = fopen("/var/run/ntp.pid", "w");
 	if (fp == NULL)
@@ -156,20 +153,8 @@ int ntp_main(int argc, char *argv[])
 	{
 		if (sig_cur == SIGTSTP)
 			;
-		else if (is_router_mode() && !nvram_match("link_internet", "2"))
-		{
-			alarm(SECONDS_TO_WAIT);
-		}
-		else if ((repeater_mode()
-#if defined(RTCONFIG_BCMWL6) && defined(RTCONFIG_PROXYSTA)
-				|| psr_mode() || mediabridge_mode()
-#elif defined(RTCONFIG_REALTEK) || defined(RTCONFIG_QCA)
-				|| mediabridge_mode()
-#endif
-#ifdef RTCONFIG_DPSTA
-				|| (dpsta_mode() && nvram_get_int("re_mode") == 0)
-#endif
-			 ) && nvram_get_int("wlc_state") != WLC_STATE_CONNECTED)
+		else if (nvram_get_int("sw_mode") == SW_MODE_ROUTER &&
+			!nvram_match("link_internet", "2"))
 		{
 			alarm(SECONDS_TO_WAIT);
 		}
@@ -191,16 +176,16 @@ int ntp_main(int argc, char *argv[])
 			if (strlen(nvram_safe_get("ntp_server0")))
 			{
 				if (server_idx)
-					strlcpy(server, nvram_safe_get("ntp_server1"), sizeof(server));
+					strcpy(server, nvram_safe_get("ntp_server1"));
 				else
-					strlcpy(server, nvram_safe_get("ntp_server0"), sizeof(server));
+					strcpy(server, nvram_safe_get("ntp_server0"));
 
 				server_idx = (server_idx + 1) % 2;
 			}
 			else if (strlen(nvram_safe_get("ntp_server1")))
-				strlcpy(server, nvram_safe_get("ntp_server1"), sizeof(server));
+				strcpy(server, nvram_safe_get("ntp_server1"));
 			else
-				strlcpy(server, "", sizeof(server));
+				strcpy(server, "");
 			args[2] = server;
 
 			set_alarm();

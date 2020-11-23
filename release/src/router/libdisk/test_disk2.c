@@ -28,10 +28,18 @@
 #include <dirent.h>
 #include <bcmnvram.h>
 
+// From BusyBox and get volume's label.
+#include <autoconf.h>
+#include <volume_id_internal.h>
 #include <shared.h>
 
 #include "disk_initial.h"
 #include "usb_info.h"
+
+#define SYS_BLOCK "/sys/block"
+#define SYS_TTY "/sys/class/tty"
+#define SYS_USB "/sys/class/usb"
+#define SYS_SG "/sys/class/scsi_generic"
 
 #if defined(usb_dbg)
 #undef usb_dbg
@@ -147,8 +155,7 @@ char *get_usb_port_by_device(const char *device_name, char *buf, const int buf_s
 	if(device_type == DEVICE_TYPE_UNKNOWN)
 		return NULL;
 
-	memset(buf, 0, buf_size);
-	strcpy(buf, "1-1");
+	snprintf(buf, buf_size, "1-1");
 
 	return buf;
 }
@@ -191,7 +198,7 @@ char *get_usb_port_by_device(const char *device_name, char *buf, const int buf_s
 	memset(usb_path, 0, sizeof(usb_path));
 
 	if(device_type == DEVICE_TYPE_DISK){
-		get_disk_name(device_name, disk_name, 16);
+		get_disk_name(device_name, disk_name, sizeof(disk_name));
 		snprintf(device_path, sizeof(device_path), "%s/%s/device", SYS_BLOCK, disk_name);
 		if(realpath(device_path, usb_path) == NULL){
 			usb_dbg("(%s): Fail to get link: %s.\n", device_name, device_path);
@@ -522,7 +529,7 @@ char *get_line_from_buffer(const char *buf, char *line, const int line_size){
 }
 
 disk_info_t *read_disk_data(){
-	disk_info_t *disk_info_list = NULL, **follow_disk_info_list;
+	disk_info_t *disk_info_list = NULL, *new_disk_info, **follow_disk_info_list;
 	char *partition_info = read_whole_file(PARTITION_FILE);
 	char *follow_info;
 	char line[64], device_name[16];
@@ -538,7 +545,7 @@ disk_info_t *read_disk_data(){
 	follow_info = partition_info;
 
 	memset(device_name, 0, sizeof(device_name));
-	while(get_line_from_buffer(follow_info, line, 64) != NULL){
+	while(get_line_from_buffer(follow_info, line, sizeof(line)) != NULL){
 		follow_info += strlen(line);
 
 		if(sscanf(line, "%u %*u %llu %[^\n ]", &major, &device_size, device_name) != 3)
@@ -557,7 +564,7 @@ disk_info_t *read_disk_data(){
 			while(*follow_disk_info_list != NULL)
 				follow_disk_info_list = &((*follow_disk_info_list)->next);
 
-			create_disk(device_name, follow_disk_info_list);
+			new_disk_info = create_disk(device_name, follow_disk_info_list);
 		}
 		else if(is_partition_name(device_name, NULL)){ // Partition
 			// Found a partition device.
@@ -671,7 +678,7 @@ disk_info_t *create_disk(const char *device_name, disk_info_t **new_disk_info){
 #endif
 			){
 		// Get USB node.
-		if(get_usb_node_by_device(device_name, usb_node, 32) == NULL){
+		if(get_usb_node_by_device(device_name, usb_node, sizeof(usb_node)) == NULL){
 			usb_dbg("(%s): Fail to get usb node.\n", device_name);
 			free_disk_data(&follow_disk_info);
 			return NULL;
@@ -1074,35 +1081,52 @@ int is_partition_name(const char *device_name, u32 *partition_order){
 }
 
 int find_partition_label(const char *dev_name, char *label){
+	struct volume_id id;
 	char dev_path[128];
 	char usb_port[32];
 	char nvram_label[32], nvram_value[512];
-	int ret;
 
-	if (label) *label = 0;
+	if(label) *label = 0;
 
 	memset(usb_port, 0, sizeof(usb_port));
-	if (get_usb_port_by_device(dev_name, usb_port, sizeof(usb_port)) == NULL)
+	if(get_usb_port_by_device(dev_name, usb_port, sizeof(usb_port)) == NULL)
 		return 0;
 
 	snprintf(nvram_label, sizeof(nvram_label), "usb_path_%s_label", dev_name);
 	strlcpy(nvram_value, nvram_safe_get(nvram_label), sizeof(nvram_value));
-	if (*nvram_value)
-		goto ret;
+	if(*nvram_value){
+		strcpy(label, nvram_value);
+
+		return (label && *label != 0);
+	}
 
 	snprintf(dev_path, sizeof(dev_path), "/dev/%s", dev_name);
-	ret = find_label_or_uuid(dev_path, nvram_value, NULL);
-	if (ret < 0)
+	memset(&id, 0x00, sizeof(id));
+	if((id.fd = open(dev_path, O_RDONLY)) < 0)
 		return 0;
 
-	if (ret == 0)
-		strcpy(nvram_value, " ");
-	nvram_set(nvram_label, nvram_value);
+	volume_id_get_buffer(&id, 0, SB_BUFFER_SIZE);
+
+	if(volume_id_probe_linux_swap(&id) == 0 || id.error)
+		goto ret;
+	if(volume_id_probe_ext(&id) == 0 || id.error)
+		goto ret;
+	if(volume_id_probe_vfat(&id) == 0 || id.error)
+		goto ret;
+	if(volume_id_probe_ntfs(&id) == 0 || id.error)
+		goto ret;
+	if(volume_id_probe_hfs_hfsplus(&id) == 0 || id.error)
+		goto ret;
 
 ret:
-	if (label)
-		strcpy(label, nvram_value);
-	return (label && *label);
+	volume_id_free_buffer(&id);
+	if(label && (*id.label != 0))
+		strcpy(label, id.label);
+	else
+		strcpy(label, " ");
+	nvram_set(nvram_label, label);
+	close(id.fd);
+	return (label && *label != 0);
 }
 
 partition_info_t *create_partition(const char *device_name, partition_info_t **new_part_info){
@@ -1284,7 +1308,7 @@ int get_partition_size(const char *partition_name, u64 *size_in_kilobytes){
 	if(!is_partition_name(partition_name, NULL))
 		return 0;
 
-	get_disk_name(partition_name, disk_name, 16);
+	get_disk_name(partition_name, disk_name, sizeof(disk_name));
 
 	snprintf(target_file, sizeof(target_file), "%s/%s/%s/size", SYS_BLOCK, disk_name, partition_name);
 	if((fp = fopen(target_file, "r")) == NULL)

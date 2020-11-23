@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2010 OpenVPN Technologies, Inc. <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -16,20 +16,16 @@
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program (see the file COPYING included with this
+ *  distribution); if not, write to the Free Software Foundation, Inc.,
+ *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
 #ifndef ERROR_H
 #define ERROR_H
 
 #include "basic.h"
-
-#include <errno.h>
-#include <stdbool.h>
-
-#include <assert.h>
 
 /* #define ABORT_ON_ERROR */
 
@@ -70,14 +66,13 @@ struct gc_arena;
 
 /* String and Error functions */
 
-#ifdef _WIN32
-#define openvpn_errno()             GetLastError()
-#define openvpn_strerror(e, gc)     strerror_win32(e, gc)
-const char *strerror_win32(DWORD errnum, struct gc_arena *gc);
-
+#ifdef WIN32
+# define openvpn_errno()             GetLastError()
+# define openvpn_strerror(e, gc)     strerror_win32(e, gc)
+  const char *strerror_win32 (DWORD errnum, struct gc_arena *gc);
 #else
-#define openvpn_errno()             errno
-#define openvpn_strerror(x, gc)     strerror(x)
+# define openvpn_errno()             errno
+# define openvpn_strerror(x, gc)     strerror(x)
 #endif
 
 /*
@@ -89,14 +84,19 @@ extern int x_msg_line_num;
 
 /* msg() flags */
 
-#define M_DEBUG_LEVEL     (0x0F)         /* debug level mask */
+#define M_DEBUG_LEVEL     (0x0F)	 /* debug level mask */
 
-#define M_FATAL           (1<<4)         /* exit program */
-#define M_NONFATAL        (1<<5)         /* non-fatal error */
-#define M_WARN            (1<<6)         /* call syslog with LOG_WARNING */
+#define M_FATAL           (1<<4)	 /* exit program */
+#define M_NONFATAL        (1<<5)	 /* non-fatal error */
+#define M_WARN	          (1<<6)	 /* call syslog with LOG_WARNING */
 #define M_DEBUG           (1<<7)
 
-#define M_ERRNO           (1<<8)         /* show errno description */
+#define M_ERRNO           (1<<8)	 /* show errno description */
+
+#ifdef ENABLE_CRYPTO_OPENSSL
+#  define M_SSL_DH          (1<<9)
+#  define M_SSL             (1<<10)	 /* show SSL error */
+#endif
 
 #define M_NOMUTE          (1<<11)        /* don't do mute processing */
 #define M_NOPREFIX        (1<<12)        /* don't show date/time prefix */
@@ -108,6 +108,8 @@ extern int x_msg_line_num;
 
 /* flag combinations which are frequently used */
 #define M_ERR     (M_FATAL | M_ERRNO)
+#define M_SSLERR  (M_FATAL | M_SSL)
+#define M_SSLDHERR  (M_FATAL | M_SSL_DH)
 #define M_USAGE   (M_USAGE_SMALL | M_NOPREFIX | M_OPTERR)
 #define M_CLIENT  (M_MSG_VIRT_OUT | M_NOMUTE | M_NOIPREFIX)
 
@@ -140,76 +142,70 @@ extern int x_msg_line_num;
  * msg() as a macro for optimization win.
  */
 
-/** Check muting filter */
-bool dont_mute(unsigned int flags);
+bool dont_mute (unsigned int flags); /* check muting filter */
 
-/* Macro to ensure (and teach static analysis tools) we exit on fatal errors */
-#define EXIT_FATAL(flags) do { if ((flags) & M_FATAL) {_exit(1);}} while (false)
+#define MSG_TEST(flags) (unlikely((((unsigned int)flags) & M_DEBUG_LEVEL) <= x_debug_level) && dont_mute (flags))
 
 #if defined(HAVE_CPP_VARARG_MACRO_ISO) && !defined(__LCLINT__)
-#define HAVE_VARARG_MACROS
-#define msg(flags, ...) do { if (msg_test(flags)) {x_msg((flags), __VA_ARGS__);} EXIT_FATAL(flags); } while (false)
-#ifdef ENABLE_DEBUG
-#define dmsg(flags, ...) do { if (msg_test(flags)) {x_msg((flags), __VA_ARGS__);} EXIT_FATAL(flags); } while (false)
-#else
-#define dmsg(flags, ...)
-#endif
+# define HAVE_VARARG_MACROS
+# define msg(flags, ...) do { if (MSG_TEST(flags)) x_msg((flags), __VA_ARGS__); } while (false)
+# ifdef ENABLE_DEBUG
+#  define dmsg(flags, ...) do { if (MSG_TEST(flags)) x_msg((flags), __VA_ARGS__); } while (false)
+# else
+#  define dmsg(flags, ...)
+# endif
 #elif defined(HAVE_CPP_VARARG_MACRO_GCC) && !defined(__LCLINT__)
-#define HAVE_VARARG_MACROS
-#define msg(flags, args ...) do { if (msg_test(flags)) {x_msg((flags), args);} EXIT_FATAL(flags); } while (false)
-#ifdef ENABLE_DEBUG
-#define dmsg(flags, args ...) do { if (msg_test(flags)) {x_msg((flags), args);} EXIT_FATAL(flags); } while (false)
+# define HAVE_VARARG_MACROS
+# define msg(flags, args...) do { if (MSG_TEST(flags)) x_msg((flags), args); } while (false)
+# ifdef ENABLE_DEBUG
+#  define dmsg(flags, args...) do { if (MSG_TEST(flags)) x_msg((flags), args); } while (false)
+# else
+#  define dmsg(flags, args...)
+# endif
 #else
-#define dmsg(flags, args ...)
+# if !PEDANTIC
+#  ifdef _MSC_VER
+#   pragma message("this compiler appears to lack vararg macros which will cause a significant degradation in efficiency")
+#  else
+#   warning this compiler appears to lack vararg macros which will cause a significant degradation in efficiency (you can ignore this warning if you are using LCLINT)
+#  endif
+# endif
+# define msg x_msg
+# define dmsg x_msg
 #endif
-#else  /* if defined(HAVE_CPP_VARARG_MACRO_ISO) && !defined(__LCLINT__) */
-#if !PEDANTIC
-#ifdef _MSC_VER
-#pragma message("this compiler appears to lack vararg macros which will cause a significant degradation in efficiency")
-#else
-#warning this compiler appears to lack vararg macros which will cause a significant degradation in efficiency (you can ignore this warning if you are using LCLINT)
-#endif
-#endif
-#define msg x_msg
-#define dmsg x_msg
-#endif /* if defined(HAVE_CPP_VARARG_MACRO_ISO) && !defined(__LCLINT__) */
 
-void x_msg(const unsigned int flags, const char *format, ...)
+void x_msg (const unsigned int flags, const char *format, ...)
 #ifdef __GNUC__
 #if __USE_MINGW_ANSI_STDIO
-__attribute__ ((format(gnu_printf, 2, 3)))
+	__attribute__ ((format (gnu_printf, 2, 3)))
 #else
-__attribute__ ((format(__printf__, 2, 3)))
+	__attribute__ ((format (__printf__, 2, 3)))
 #endif
 #endif
-;     /* should be called via msg above */
+    ; /* should be called via msg above */
 
-void x_msg_va(const unsigned int flags, const char *format, va_list arglist);
+void x_msg_va (const unsigned int flags, const char *format, va_list arglist);
 
 /*
  * Function prototypes
  */
 
-void error_reset(void);
+void error_reset (void);
 
 /* route errors to stderr that would normally go to stdout */
-void errors_to_stderr(void);
+void errors_to_stderr (void);
 
-void set_suppress_timestamps(bool suppressed);
-
-void set_machine_readable_output(bool parsable);
-
+void set_suppress_timestamps (bool suppressed);
 
 #define SDL_CONSTRAIN (1<<0)
-bool set_debug_level(const int level, const unsigned int flags);
+bool set_debug_level (const int level, const unsigned int flags);
 
-bool set_mute_cutoff(const int cutoff);
+bool set_mute_cutoff (const int cutoff);
 
-int get_debug_level(void);
+int get_debug_level (void);
+int get_mute_cutoff (void);
 
-int get_mute_cutoff(void);
-
-const char *msg_flags_string(const unsigned int flags, struct gc_arena *gc);
+const char *msg_flags_string (const unsigned int flags, struct gc_arena *gc);
 
 /*
  * File to print messages to before syslog is opened.
@@ -217,66 +213,43 @@ const char *msg_flags_string(const unsigned int flags, struct gc_arena *gc);
 FILE *msg_fp(const unsigned int flags);
 
 /* Fatal logic errors */
-#ifndef ENABLE_SMALL
-#define ASSERT(x) do { if (!(x)) {assert_failed(__FILE__, __LINE__, #x);}} while (false)
-#else
-#define ASSERT(x) do { if (!(x)) {assert_failed(__FILE__, __LINE__, NULL);}} while (false)
-#endif
+#define ASSERT(x) do { if (!(x)) assert_failed(__FILE__, __LINE__); } while (false)
 
-void assert_failed(const char *filename, int line, const char *condition)
-__attribute__((__noreturn__));
-
-/* Poor-man's static_assert() for when not supplied by assert.h, taken from
- * Linux's sys/cdefs.h under GPLv2 */
-#ifndef static_assert
-#define static_assert(expr, diagnostic) \
-    extern int (*__OpenVPN_static_assert_function(void)) \
-    [!!sizeof(struct { int __error_if_negative : (expr) ? 2 : -1; })]
-#endif
+void assert_failed (const char *filename, int line);
 
 #ifdef ENABLE_DEBUG
-void crash(void);  /* force a segfault (debugging only) */
-
+void crash (void); /* force a segfault (debugging only) */
 #endif
 
 /* Inline functions */
 
 static inline bool
-check_debug_level(unsigned int level)
+check_debug_level (unsigned int level)
 {
-    return (level & M_DEBUG_LEVEL) <= x_debug_level;
-}
-
-/** Return true if flags represent an enabled, not muted log level */
-static inline bool
-msg_test(unsigned int flags)
-{
-    return check_debug_level(flags) && dont_mute(flags);
+  return (level & M_DEBUG_LEVEL) <= x_debug_level;
 }
 
 /* Call if we forked */
-void msg_forked(void);
+void msg_forked (void);
 
 /* syslog output */
 
-void open_syslog(const char *pgmname, bool stdio_to_null);
-
-void close_syslog(void);
+void open_syslog (const char *pgmname, bool stdio_to_null);
+void close_syslog ();
 
 /* log file output */
-void redirect_stdout_stderr(const char *file, bool append);
+void redirect_stdout_stderr (const char *file, bool append);
 
-#ifdef _WIN32
+#ifdef WIN32
 /* get original stderr handle, even if redirected by --log/--log-append */
-HANDLE get_orig_stderr(void);
-
+HANDLE get_orig_stderr (void);
 #endif
 
 /* exit program */
-void openvpn_exit(const int status);
+void openvpn_exit (const int status);
 
 /* exit program on out of memory error */
-void out_of_memory(void);
+void out_of_memory (void);
 
 /*
  * Check the return status of read/write routines.
@@ -289,28 +262,25 @@ extern unsigned int x_cs_info_level;
 extern unsigned int x_cs_verbose_level;
 extern unsigned int x_cs_err_delay_ms;
 
-void reset_check_status(void);
+void reset_check_status (void);
+void set_check_status (unsigned int info_level, unsigned int verbose_level);
 
-void set_check_status(unsigned int info_level, unsigned int verbose_level);
-
-void x_check_status(int status,
-                    const char *description,
-                    struct link_socket *sock,
-                    struct tuntap *tt);
+void x_check_status (int status,
+		     const char *description,
+		     struct link_socket *sock,
+		     struct tuntap *tt);
 
 static inline void
-check_status(int status, const char *description, struct link_socket *sock, struct tuntap *tt)
+check_status (int status, const char *description, struct link_socket *sock, struct tuntap *tt)
 {
-    if (status < 0 || check_debug_level(x_cs_verbose_level))
-    {
-        x_check_status(status, description, sock, tt);
-    }
+  if (status < 0 || check_debug_level (x_cs_verbose_level))
+    x_check_status (status, description, sock, tt);
 }
 
 static inline void
-set_check_status_error_delay(unsigned int milliseconds)
+set_check_status_error_delay (unsigned int milliseconds)
 {
-    x_cs_err_delay_ms = milliseconds;
+  x_cs_err_delay_ms = milliseconds;
 }
 
 /*
@@ -322,18 +292,17 @@ set_check_status_error_delay(unsigned int milliseconds)
 
 extern const char *x_msg_prefix;
 
-void msg_thread_init(void);
-
-void msg_thread_uninit(void);
+void msg_thread_init (void);
+void msg_thread_uninit (void);
 
 static inline void
-msg_set_prefix(const char *prefix)
+msg_set_prefix (const char *prefix)
 {
     x_msg_prefix = prefix;
 }
 
 static inline const char *
-msg_get_prefix(void)
+msg_get_prefix (void)
 {
     return x_msg_prefix;
 }
@@ -347,15 +316,15 @@ struct virtual_output;
 extern const struct virtual_output *x_msg_virtual_output;
 
 static inline void
-msg_set_virtual_output(const struct virtual_output *vo)
+msg_set_virtual_output (const struct virtual_output *vo)
 {
-    x_msg_virtual_output = vo;
+  x_msg_virtual_output = vo;
 }
 
 static inline const struct virtual_output *
-msg_get_virtual_output(void)
+msg_get_virtual_output (void)
 {
-    return x_msg_virtual_output;
+  return x_msg_virtual_output;
 }
 
 /*
@@ -363,41 +332,28 @@ msg_get_virtual_output(void)
  * which can be safely ignored.
  */
 static inline bool
-ignore_sys_error(const int err)
+ignore_sys_error (const int err)
 {
-    /* I/O operation pending */
-#ifdef _WIN32
-    if (err == WSAEWOULDBLOCK || err == WSAEINVAL)
-    {
-        return true;
-    }
+  /* I/O operation pending */
+#ifdef WIN32
+  if (err == WSAEWOULDBLOCK || err == WSAEINVAL)
+    return true;
 #else
-    if (err == EAGAIN)
-    {
-        return true;
-    }
+  if (err == EAGAIN)
+    return true;
 #endif
 
 #if 0 /* if enabled, suppress ENOBUFS errors */
 #ifdef ENOBUFS
-    /* No buffer space available */
-    if (err == ENOBUFS)
-    {
-        return true;
-    }
+  /* No buffer space available */
+  if (err == ENOBUFS)
+    return true;
 #endif
 #endif
 
-    return false;
-}
-
-/** Convert fatal errors to nonfatal, don't touch other errors */
-static inline unsigned int
-nonfatal(const unsigned int err)
-{
-    return err & M_FATAL ? (err ^ M_FATAL) | M_NONFATAL : err;
+  return false;
 }
 
 #include "errlevel.h"
 
-#endif /* ifndef ERROR_H */
+#endif

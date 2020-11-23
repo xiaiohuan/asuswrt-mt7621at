@@ -17,19 +17,6 @@
 #include <bcmutils.h>
 #include <wlutils.h>
 
-#ifdef RTCONFIG_QSR10G
-#include "qcsapi_output.h"
-#include "qcsapi_rpc_common/client/find_host_addr.h"
-
-#include "qcsapi.h"
-#include "qcsapi_rpc/client/qcsapi_rpc_client.h"
-#include "qcsapi_rpc/generated/qcsapi_rpc.h"
-#include <qcsapi_rpc_common/common/rpc_raw.h>
-#include <qcsapi_rpc_common/common/rpc_pci.h>
-#include "qcsapi_driver.h"
-#include "call_qcsapi.h"
-#endif
-
 //	ref: http://wiki.openwrt.org/OpenWrtDocs/nas
 
 //	#define DEBUG_TIMING
@@ -56,8 +43,6 @@ int wds_enable(void)
 #endif
 
 #ifdef CONFIG_BCMWL5
-extern int restore_defaults_g;
-
 int
 start_nas(void)
 {
@@ -65,11 +50,7 @@ start_nas(void)
 	pid_t pid;
 
 	stop_nas();
-
-	if (!restore_defaults_g)
-		return _eval(nas_argv, NULL, 0, &pid);
-
-	return 0;
+	return _eval(nas_argv, NULL, 0, &pid);
 }
 
 void
@@ -128,10 +109,7 @@ void notify_nas(const char *ifname)
 #endif
 #endif
 
-#if defined(CONFIG_BCMWL5) \
-		|| (defined(RTCONFIG_RALINK) && defined(RTCONFIG_WIRELESSREPEATER)) \
-		|| defined(RTCONFIG_QCA) || defined(RTCONFIG_REALTEK) \
-		|| defined(RTCONFIG_QSR10G) || defined(RTCONFIG_LANTIQ)
+#if defined(CONFIG_BCMWL5) || (defined(RTCONFIG_RALINK) && defined(RTCONFIG_WIRELESSREPEATER)) || defined(RTCONFIG_QCA)
 #define APSCAN_INFO "/tmp/apscan_info.txt"
 
 static int lock = -1;
@@ -140,7 +118,6 @@ static void wlcscan_safeleave(int signo) {
 	signal(SIGTERM, SIG_IGN);
 
 	nvram_set_int("wlc_scan_state", WLCSCAN_STATE_STOPPED);
-
 	file_unlock(lock);
 	exit(0);
 }
@@ -151,32 +128,11 @@ static void wlcscan_safeleave(int signo) {
 
 int wlcscan_main(void)
 {
-	FILE *fp=NULL;
-	char word[256]={0}, *next = NULL;
-#if defined(RTCONFIG_CONCURRENTREPEATER) && defined(RTCONFIG_MTK_REP)		
-	char wl_ifs[256]={0};
-#endif
-	int i = 0;
-#ifdef RTCONFIG_QSR10G
-	CLIENT *clnt;
-	char host[18];
-#endif
-#ifdef __CONFIG_DHDAP__
-	char tmp[100], prefix[]="wlXXXXXXX_";
-	int is_dhd = 0;
-#endif
+	FILE *fp;
+	char word[256], *next;
+	int i;
 
 	signal(SIGTERM, wlcscan_safeleave);
-
-#ifdef RTCONFIG_QSR10G
-	snprintf(host, sizeof(host), "localhost");
-	clnt = clnt_pci_create(host, QCSAPI_PROG, QCSAPI_VERS, NULL);
-	if (clnt == NULL) {
-		_dprintf("[%s][%d] clnt_pci_create() error\n", __func__, __LINE__);
-	}else{
-		client_qcsapi_set_rpcclient(clnt);
-	}
-#endif
 
 	/* clean APSCAN_INFO */
 	lock = file_lock("sitesurvey");
@@ -186,52 +142,22 @@ int wlcscan_main(void)
 	file_unlock(lock);
 
 	nvram_set_int("wlc_scan_state", WLCSCAN_STATE_INITIALIZING);
-
 	/* Starting scanning */
 	i = 0;
-#if defined(RTCONFIG_CONCURRENTREPEATER) && defined(RTCONFIG_MTK_REP)
-	if (nvram_match("wps_cli_state", "1")) {
-		if (nvram_match("wlc_express", "1"))
-			strncpy(wl_ifs,nvram_safe_get("wl0_ifname"), sizeof(wl_ifs));
-		else if (nvram_match("wlc_express", "2"))
-			strncpy(wl_ifs,nvram_safe_get("wl1_ifname"), sizeof(wl_ifs));		
-		else  
-			strncpy(wl_ifs,nvram_safe_get("wl_ifnames"), sizeof(wl_ifs));
-	}
-	else
-		strncpy(wl_ifs,nvram_safe_get("wl_ifnames"), sizeof(wl_ifs));
-	foreach (word, wl_ifs, next)
+	foreach (word, nvram_safe_get("wl_ifnames"), next) {
+#if defined(RTCONFIG_BCM7) || defined(RTCONFIG_BCM_7114)
+		wlcscan_core_escan(APSCAN_INFO, word);
 #else
-	foreach (word, nvram_safe_get("wl_ifnames"), next)
+		wlcscan_core(APSCAN_INFO, word);
 #endif
-	{	
-		SKIP_ABSENT_BAND_AND_INC_UNIT(i);
-#ifdef __CONFIG_DHDAP__
-		is_dhd = !dhd_probe(word);
-		snprintf(prefix, sizeof(prefix), "wl%d_", i);
-		if (is_dhd && !nvram_match(strcat_r(prefix, "mode", tmp), "wds"))
-			wlcscan_core_escan(APSCAN_INFO, word);
-		else
-#endif
-			wlcscan_core(APSCAN_INFO, word);
-
 		// suppose only two or less interface handled
 		nvram_set_int("wlc_scan_state", WLCSCAN_STATE_2G+i);
-
 		i++;
 	}
-
 #ifdef RTCONFIG_QTN
 	wlcscan_core_qtn(APSCAN_INFO, "wifi0");
 #endif
-#ifdef RTCONFIG_QSR10GBAK
-	if(clnt != NULL){
-		clnt_destroy(clnt);
-	}
-#endif
-
 	nvram_set_int("wlc_scan_state", WLCSCAN_STATE_FINISHED);
-
 	return 1;
 }
 
@@ -260,10 +186,9 @@ _dprintf("%s: Start to run...\n", __FUNCTION__);
 	int ret, old_ret = -1;
 	int link_setup = 0, wlc_count = 0;
 	int wanduck_notify = NOTIFY_IDLE;
-	int wlc_wait_time = nvram_get_int("wl_time") ? : 5;
 #if defined(RTCONFIG_BLINK_LED)
 	int unit = nvram_get_int("wlc_band");
-	char *led_gpio = get_wl_led_gpio_nv(unit);
+	char *led_gpio = unit? "led_5g_gpio" : "led_2g_gpio";
 #endif
 
 	signal(SIGTERM, wlcconnect_safeleave);
@@ -271,10 +196,6 @@ _dprintf("%s: Start to run...\n", __FUNCTION__);
 	nvram_set_int("wlc_state", WLC_STATE_INITIALIZING);
 	nvram_set_int("wlc_sbstate", WLC_STOPPED_REASON_NONE);
 	nvram_set_int("wlc_state", WLC_STATE_CONNECTING);
-
-#ifdef RTCONFIG_LANTIQ
-	start_repeater();
-#endif
 
 	while (1) {
 		ret = wlcconnect_core();
@@ -289,13 +210,14 @@ _dprintf("%s: Start to run...\n", __FUNCTION__);
 		}
 
 		// let ret be two value: connected, disconnected.
-		if (ret != WLC_STATE_CONNECTED ||
-			(nvram_match("lan_proto", "dhcp") && nvram_get_int("lan_state_t") != LAN_STATE_CONNECTED))
+		if (ret != WLC_STATE_CONNECTED)
+			ret = WLC_STATE_CONNECTING;
+		else if (nvram_match("lan_proto", "dhcp") && nvram_get_int("lan_state_t") != LAN_STATE_CONNECTED)
 			ret = WLC_STATE_CONNECTING;
 
-		if(link_setup == 1){
-			if(ret != WLC_STATE_CONNECTED){
-				if(wlc_count < 3){
+		if (link_setup == 1) {
+			if (ret != WLC_STATE_CONNECTED) {
+				if (wlc_count < 3) {
 					wlc_count++;
 _dprintf("Ready to disconnect...%d.\n", wlc_count);
 #ifdef RTCONFIG_RALINK
@@ -308,11 +230,7 @@ _dprintf("Ready to disconnect...%d.\n", wlc_count);
 					else
 #endif
 #endif
-#if defined(RPAC51)
-					usleep(500);
-#else
 					sleep(5);
-#endif
 #endif
 					continue;
 				}
@@ -322,8 +240,14 @@ _dprintf("Ready to disconnect...%d.\n", wlc_count);
 		}
 
 		if (ret != old_ret) {
-			if (link_setup == 0 && ret == WLC_STATE_CONNECTED)
-				link_setup = 1;
+			if (link_setup == 0) {
+				if (ret == WLC_STATE_CONNECTED)
+					link_setup = 1;
+				/*else {
+					sleep(5);
+					continue;
+				}//*/
+			}
 
 			if (link_setup) {
 				if (ret == WLC_STATE_CONNECTED)
@@ -333,14 +257,12 @@ _dprintf("Ready to disconnect...%d.\n", wlc_count);
 
 				// notify the change to init.
 				if (ret == WLC_STATE_CONNECTED)
-				{
 					notify_rc_and_wait("restart_wlcmode 1");
-				}
 				else
 				{
 					notify_rc_and_wait("restart_wlcmode 0");
-#if defined(RTCONFIG_CONCURRENTREPEATER) && defined(RTCONFIG_RALINK)
-					nvram_set_int("lan_ready",0);
+#ifdef CONFIG_BCMWL5
+					notify_rc("restart_wireless");
 #endif
 				}
 
@@ -369,7 +291,7 @@ _dprintf("Ready to disconnect...%d.\n", wlc_count);
 			old_ret = ret;
 		}
 
-		sleep(wlc_wait_time);
+		sleep(5);
 	}
 
 	return 0;
@@ -383,7 +305,6 @@ void repeater_pap_disable(void)
 	i = 0;
 
 	foreach(word, nvram_safe_get("wl_ifnames"), next) {
-		SKIP_ABSENT_BAND_AND_INC_UNIT(i);
 		if (nvram_get_int("wlc_band") == i) {
 			eval("ebtables", "-t", "filter", "-I", "FORWARD", "-i", word, "-j", "DROP");
 			break;
@@ -402,15 +323,9 @@ void update_wifi_led_state_in_wlcmode(void)
 	if (!repeater_mode() && !mediabridge_mode())
 		return;
 
-	for (band = 0; band < MAX_NR_WL_IF; ++band) {
-		SKIP_ABSENT_BAND(band);
-		if (band >= 2) {
-			/* 2-nd 5G LED and 11ad LED have not been supported! */
-			dbg("%s: Unknown LED for wl%d\n", __func__, band);
-			continue;
-		}
-		id = get_wl_led_id(band);
-		led_gpio = get_wl_led_gpio_nv(band);
+	for (band = 0; band < 2; ++band) {
+		id = band? LED_5G : LED_2G;
+		led_gpio = band? "led_5g_gpio" : "led_2g_gpio";
 		if (band != wlc_band) {
 			if (mediabridge_mode())
 				led_control(id, LED_OFF);
@@ -429,19 +344,3 @@ void update_wifi_led_state_in_wlcmode(void)
 }
 #endif
 #endif	/* RTCONFIG_WIRELESSREPEATER */
-
-#if defined(RTCONFIG_QCA) || defined(RTCONFIG_RALINK)
-int dump_powertable(void)
-{
-	_dump_powertable();
-	return 0;
-}
-#endif
-
-#if defined(RTCONFIG_RALINK)
-int dump_txbftable(void)
-{
-	_dump_txbftable();
-	return 0;
-}
-#endif

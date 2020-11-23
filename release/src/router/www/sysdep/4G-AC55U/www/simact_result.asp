@@ -1,1 +1,1 @@
-../../4G-AC68U/www/simact_result.asp
+﻿simact_result = '<% get_simact_result(); %>';

@@ -8,11 +8,6 @@
 
 #ifndef MEM_UTILS_H
 #define MEM_UTILS_H 1
-
-#ifdef HND_ROUTER
-#define inline  
-#endif
-
 inline void *xmalloc(size_t);
 inline void *xrealloc(void *, size_t);
 #endif

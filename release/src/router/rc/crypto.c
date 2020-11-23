@@ -75,7 +75,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <bcmcrypto/dh.h>
-#include <time.h>
 
 #define _OPENSSL_malloc malloc
 #define _OPENSSL_free free

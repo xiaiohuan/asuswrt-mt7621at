@@ -21,9 +21,8 @@
 <script language="JavaScript" type="text/javascript" src="/validator.js"></script>
 <script language="JavaScript" type="text/javascript" src="/js/jquery.js"></script>
 <script language="JavaScript" type="text/javascript" src="/client_function.js"></script>
-<script type="text/javascript" src="/js/httpApi.js"></script>
 <script>
-var wollist_array = decodeURIComponent('<% nvram_char_to_ascii("", "wollist"); %>').replace(/>/g, "&#62").replace(/</g, "&#60");
+var wollist_array = '<% nvram_get("wollist"); %>';
 var manually_wol_list_array = new Array();
 Object.prototype.getKey = function(value) {
 	for(var key in this) {
@@ -35,8 +34,6 @@ Object.prototype.getKey = function(value) {
 };
 function initial(){
 	show_menu();
-	//	https://www.asus.com/support/FAQ/1011268
-	httpApi.faqURL("1011268", function(url){document.getElementById("faq3").href=url;});	// id in #smart_access3#
 
 	var wollist_row = wollist_array.split('&#60');
 	for(var i = 1; i < wollist_row.length; i += 1) {
@@ -55,7 +52,7 @@ function onSubmitCtrl(o, s) {
 		return false;
 	}
 
-	if(check_hwaddr_flag(document.form.destIP, 'inner') != 0){
+	if(check_hwaddr_flag(document.form.destIP) != 0){
 		alert("<#IPConnection_x_illegal_mac#>");
 		document.form.destIP.focus();
 		return false;
@@ -119,10 +116,10 @@ function checkCmdRet(){
 
 function showwollist(){
 	var code = "";
-	var clientListEventData = [];
-	code += '<table width="100%" cellspacing="0" cellpadding="4" align="center" class="list_table" id="wollist_table">';
+
+	code +='<table width="100%" cellspacing="0" cellpadding="4" align="center" class="list_table" id="wollist_table">';
 	if(Object.keys(manually_wol_list_array).length == 0)
-		code += '<tr><td style="color:#FFCC00;"><#IPConnection_VSList_Norule#></td></tr>';
+		code +='<tr><td style="color:#FFCC00;" colspan="6"><#IPConnection_VSList_Norule#></td></tr>';
 	else{
 		//user icon
 		var userIconBase64 = "NoIcon";
@@ -134,9 +131,8 @@ function showwollist(){
 				manually_wol_list_array[key] = clientName;
 			}
 			var clientMac = key.toUpperCase();
-			var clientIconID = "clientIcon_" + clientMac.replace(/\:/g, "");
-			code += '<tr>';
-			code += '<td width="80%" align="center">';
+			code +='<tr>';
+			code +='<td width="80%" align="center">';
 			if(clientList[clientMac]) {
 				deviceType = clientList[clientMac].type;
 				deviceVender = clientList[clientMac].vendor;
@@ -147,25 +143,25 @@ function showwollist(){
 			}
 			code += '<table style="width:100%;"><tr><td style="width:40%;height:56px;border:0px;float:right;">';	
 			if(clientList[clientMac] == undefined) {
-				code += '<div id="' + clientIconID + '" class="clientIcon type0"></div>';
+				code += '<div class="clientIcon type0" onClick="popClientListEditTable(\'' + clientMac + '\', this, \'' + clientName + '\', \'\', \'WOL\')"></div>';
 			}
 			else {
 				if(usericon_support) {
 					userIconBase64 = getUploadIcon(clientMac.replace(/\:/g, ""));
 				}
 				if(userIconBase64 != "NoIcon") {
-					code += '<div id="' + clientIconID + '" style="text-align:center;"><img class="imgUserIcon_card" src="' + userIconBase64 + '"></div>';
+					code += '<div style="text-align:center;" onClick="popClientListEditTable(\'' + clientMac + '\', this, \'' + clientName + '\', \'\', \'WOL\')"><img class="imgUserIcon_card" src="' + userIconBase64 + '"></div>';
 				}
 				else if(deviceType != "0" || deviceVender == "") {
-					code += '<div id="' + clientIconID + '" class="clientIcon type' + deviceType + '"></div>';
+					code += '<div class="clientIcon type' + deviceType + '" onClick="popClientListEditTable(\'' + clientMac + '\', this, \'' + clientName + '\', \'\', \'WOL\')"></div>';
 				}
 				else if(deviceVender != "" ) {
 					var venderIconClassName = getVenderIconClassName(deviceVender.toLowerCase());
 					if(venderIconClassName != "" && !downsize_4m_support) {
-						code += '<div id="' + clientIconID + '" class="venderIcon ' + venderIconClassName + '"></div>';
+						code += '<div class="venderIcon ' + venderIconClassName + '" onClick="popClientListEditTable(\'' + clientMac + '\', this, \'' + clientName + '\', \'\', \'WOL\')"></div>';
 					}
 					else {
-						code += '<div id="' + clientIconID + '" class="clientIcon type' + deviceType + '"></div>';
+						code += '<div class="clientIcon type' + deviceType + '" onClick="popClientListEditTable(\'' + clientMac + '\', this, \'' + clientName + '\', \'\', \'WOL\')"></div>';
 					}
 				}
 			}
@@ -173,23 +169,14 @@ function showwollist(){
 			code += '<div>' + clientName + '</div>';
 			code += '<div style="font-weight:bold;cursor:pointer;text-decoration:underline;font-family:Lucida Console;" onclick="document.form.destIP.value=this.innerHTML;">' + clientMac + '</div>';
 			code += '</td></tr></table>';
-			code += '</td>';
-			code += '<td width="20%">';
-			code += '<input class="remove_btn" onclick="del_Row(this, \'' + clientMac + '\');" value=""/></td></tr>';
-			if(validator.mac_addr(clientMac))
-				clientListEventData.push({"mac" : clientMac, "name" : "", "ip" : "", "callBack" : "WOL"});
+			code +='</td>';
+			code +='<td width="20%">';
+			code +='<input class="remove_btn" onclick="del_Row(this, \'' + clientMac + '\');" value=""/></td></tr>';
 		});
 	}
 
-	code += '</table>';
+  	code +='</table>';
 	document.getElementById("wollist_Block").innerHTML = code;
-	for(var i = 0; i < clientListEventData.length; i += 1) {
-		var clientIconID = "clientIcon_" + clientListEventData[i].mac.replace(/\:/g, "");
-		var clientIconObj = $("#wollist_Block").children("#wollist_table").find("#" + clientIconID + "")[0];
-		var paramData = JSON.parse(JSON.stringify(clientListEventData[i]));
-		paramData["obj"] = clientIconObj;
-		$("#wollist_Block").children("#wollist_table").find("#" + clientIconID + "").click(paramData, popClientListEditTable);
-	}
 }
 
 function addRow_Group(upper){
@@ -205,7 +192,7 @@ function addRow_Group(upper){
 		document.form.wollist_macAddr.focus();
 		document.form.wollist_macAddr.select();			
 		return false;
-	}else if(!check_macaddr(document.form.wollist_macAddr, check_hwaddr_flag(document.form.wollist_macAddr, 'inner'))){
+	}else if(!check_macaddr(document.form.wollist_macAddr, check_hwaddr_flag(document.form.wollist_macAddr))){
 		document.form.wollist_macAddr.focus();
 		document.form.wollist_macAddr.select();	
 		return false;	
@@ -308,7 +295,7 @@ function applyRule(){
 <div id="TopBanner"></div>
 <div id="Loading" class="popup_bg"></div>
 <iframe name="hidden_frame" id="hidden_frame" src="" width="0" height="0" frameborder="0"></iframe>
-<form method="POST" name="form" action="/apply.cgi" target="hidden_frame">
+<form method="POST" name="form" action="/apply.cgi" target="hidden_frame"> 
 <input type="hidden" name="current_page" value="Main_WOL_Content.asp">
 <input type="hidden" name="next_page" value="Main_WOL_Content.asp">
 <input type="hidden" name="group_id" value="">

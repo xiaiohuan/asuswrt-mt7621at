@@ -19,8 +19,6 @@
 
 #ifdef RTCONFIG_RALINK
 #elif defined(RTCONFIG_QCA)
-#elif defined(RTCONFIG_ALPINE)
-#elif defined(RTCONFIG_LANTIQ)
 #else
 #include <typedefs.h>
 #include <proto/ethernet.h>

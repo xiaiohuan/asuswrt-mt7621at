@@ -17,7 +17,6 @@
 #ifndef VSF_SYSUTIL_H
 #define VSF_SYSUTIL_H
 
-#include <string.h>
 #include "shared.h"
 
 // 2007.05 James {

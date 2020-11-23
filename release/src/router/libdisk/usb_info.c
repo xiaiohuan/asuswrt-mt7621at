@@ -1196,24 +1196,16 @@ int isGCTInterface(const char *interface_name){
 #endif
 
 // 0: no modem, 1: has modem
-int is_usb_modem_ready(int wan_type)
+int is_usb_modem_ready(void)
 {
 	char prefix[32], tmp[100];
 	char usb_act[8];
 	char usb_node[32], port_path[8];
-	char prefix2[32], tmp2[100];
-	int unit;
-	int unit_wan;
-	char wan_ifname[8];
 
 	if(nvram_match("modem_enable", "0"))
 		return 0;
 
-	unit = get_modemunit_by_type(wan_type);
-	unit_wan = get_wanunit_by_type(wan_type);
-	usb_modem_prefix(unit, prefix2, sizeof(prefix2));
-
-	if(snprintf(usb_node, 32, "%s", nvram_safe_get(strcat_r(prefix2, "act_path", tmp2))) <= 0)
+	if(snprintf(usb_node, sizeof(usb_node), "%s", nvram_safe_get("usb_modem_act_path")) <= 0)
 		return 0;
 
 	if(get_path_by_node(usb_node, port_path, 8) == NULL)
@@ -1221,13 +1213,6 @@ int is_usb_modem_ready(int wan_type)
 
 	snprintf(prefix, sizeof(prefix), "usb_path%s", port_path);
 	snprintf(usb_act, sizeof(usb_act), "%s", nvram_safe_get(strcat_r(prefix, "_act", tmp)));
-	snprintf(prefix2, sizeof(prefix2), "wan%d_", unit_wan);
-	snprintf(wan_ifname, sizeof(wan_ifname), "%s", nvram_safe_get(strcat_r(prefix2, "ifname", tmp2)));
-
-	if(*wan_ifname && !(*usb_act)){
-		nvram_set(tmp, wan_ifname);
-		snprintf(usb_act, sizeof(usb_act), "%s", wan_ifname);
-	}
 
 	if(nvram_match(prefix, "modem") && *usb_act)
 		return 1;
@@ -1259,7 +1244,7 @@ int hadPrinterInterface(const char *usb_node)
 	for(printer_order = 0; printer_order < MAX_USB_PRINTER_NUM; ++printer_order){
 		snprintf(device_name, sizeof(device_name), "lp%d", printer_order);
 
-		if(get_usb_node_by_device(device_name, check_usb_node, 32) == NULL)
+		if(get_usb_node_by_device(device_name, check_usb_node, sizeof(check_usb_node)) == NULL)
 			continue;
 
 		if(!strcmp(usb_node, check_usb_node)){
