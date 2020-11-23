@@ -803,7 +803,7 @@ define platformKernelConfig
 		sed -i "/CONFIG_RA_HW_NAT_NONE2UP/d" $(1); \
 		echo "# CONFIG_RA_HW_NAT_NONE2UP is not set" >>$(1); \
 	fi; \
-	if [ "$(RTN14U)" = "y" ] || [ "$(RTAC52U)" = "y" ] || [ "$(RTAC51U)" = "y" ] || [ "$(RTN11P)" = "y" ] || [ "$(RTAC54U)" = "y" ] || [ "$(RTN54U)" = "y" ] || [ "$(RTAC1200HP)" = "y" ]; then \
+	if [ "$(RTN14U)" = "y" ] || [ "$(RTAC52U)" = "y" ] || [ "$(RTAC51U)" = "y" ] || [ "$(RTWIFIMINI)" = "y" ] || [ "$(RTN11P)" = "y" ] || [ "$(RTAC54U)" = "y" ] || [ "$(RTN54U)" = "y" ] || [ "$(RTAC1200HP)" = "y" ]; then \
 		sed -i "/CONFIG_RAETH_HW_VLAN_TX/d" $(1); \
 		echo "# CONFIG_RAETH_HW_VLAN_TX is not set" >>$(1); \
 		echo "# CONFIG_RA_HW_NAT_PPTP_L2TP is not set" >>$(1); \

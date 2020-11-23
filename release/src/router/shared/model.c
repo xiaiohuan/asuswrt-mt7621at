@@ -25,7 +25,11 @@ static const struct model_s model_list[] = {
 	{ "RT-N13U",	MODEL_RTN13U	},
 	{ "RT-N14U",	MODEL_RTN14U	},
 	{ "RT-AC52U",	MODEL_RTAC52U	},
+#if defined(RTWIFIMINI)
+	{ "RT-WIFIMINI",MODEL_RTWIFIMINI},
+#else
 	{ "RT-AC51U",	MODEL_RTAC51U	},
+#endif
 	{ "RT-N54U",	MODEL_RTN54U	},
 	{ "RT-AC54U",	MODEL_RTAC54U	},
 	{ "RT-N56UB1",	MODEL_RTN56UB1	},
@@ -153,6 +157,9 @@ int get_fwver(char *buildno, char *extendno) {
  * result is cached for safe multiple use */
 int get_model(void)
 {
+#if defined(RTWIFIMINI)
+	return MODEL_RTWIFIMINI;
+#endif
 	static int model = MODEL_UNKNOWN;
 	char *pid;
 	const struct model_s *p;

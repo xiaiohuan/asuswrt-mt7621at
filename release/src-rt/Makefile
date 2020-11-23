@@ -262,7 +262,7 @@ ifeq ($(CONFIG_RALINK),y)
 		echo -n "PA/LNA: " ; \
 		if [ "`grep -c \"^CONFIG_INTERNAL_PA_INTERNAL_LNA\>\" $(LINUXDIR)/.config`" -gt 0 ] ; then \
 			echo "Internal PA + Internal LNA" ; \
-			if [ "$(BUILD_NAME)" = "RT-N14U" ] || [ "$(BUILD_NAME)" = "RT-AC51U" ] || [ "$(BUILD_NAME)" = "RT-N11P" ] || [ "$(BUILD_NAME)" = "RT-N300" ] || [ "$(BUILD_NAME)" = "RT-N54U" ] || [ "$(BUILD_NAME)" = "RT-AC54U" ] ; then \
+			if [ "$(BUILD_NAME)" = "RT-N14U" ] || [ "$(BUILD_NAME)" = "RT-AC51U" ] || [ "$(BUILD_NAME)" = "RT-WIFIMINI" ] || [ "$(BUILD_NAME)" = "RT-N11P" ] || [ "$(BUILD_NAME)" = "RT-N300" ] || [ "$(BUILD_NAME)" = "RT-N54U" ] || [ "$(BUILD_NAME)" = "RT-AC54U" ] ; then \
 				echo "Check PA/LNA: OK" ; \
 			else \
 				mv -f image/$(IMGNAME).trx image/$(IMGNAME)_int_PA_int_LNA.trx ; \

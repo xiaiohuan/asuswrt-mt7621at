@@ -384,6 +384,8 @@ enum {
 	MODEL_RTAC82U,
 };
 
+#define MODEL_RTWIFIMINI MODEL_RTAC51U
+
 /* NOTE: Do not insert new entries in the middle of this enum,
  * always add them to the end! */
 enum {

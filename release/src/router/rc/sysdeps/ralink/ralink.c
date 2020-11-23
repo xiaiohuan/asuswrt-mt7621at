@@ -53,7 +53,7 @@
 char *wlc_nvname(char *keyword);
 //#endif
 
-#if defined(RTAC52U) || defined(RTAC51U) || defined(RTAC1200HP) || defined(RTN56UB1) || defined(RTAC54U) || defined(RTN56UB2)
+#if defined(RTAC52U) || defined(RTAC51U) || defined(RTWIFIMINI) || defined(RTAC1200HP) || defined(RTN56UB1) || defined(RTAC54U) || defined(RTN56UB2)
 #define VHT_SUPPORT /* 11AC */
 #endif
 
@@ -1481,7 +1481,7 @@ int gen_ralink_config(int band, int is_iNIC)
 	{
 		fprintf(fp, "GreenAP=%d\n", 1);
 	}
-#elif defined(RTN14U) || defined(RTAC52U) || defined(RTAC51U) || defined(RTN11P) || defined(RTN300) || defined(RTN54U) || defined(RTAC1200HP) || defined(RTN56UB1) || defined(RTAC54U) || defined(RTN56UB2)
+#elif defined(RTN14U) || defined(RTAC52U) || defined(RTAC51U) || defined(RTWIFIMINI) || defined(RTN11P) || defined(RTN300) || defined(RTN54U) || defined(RTAC1200HP) || defined(RTN56UB1) || defined(RTAC54U) || defined(RTN56UB2)
 	/// MT7620 GreenAP will impact TSSI, force to disable GreenAP here..
 	//  MT7620 GreenAP cause bad site survey result on RTAC52 2G.
 	{

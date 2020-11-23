@@ -2,7 +2,7 @@
 #include <shutils.h>
 #ifdef RTCONFIG_RALINK
 #include <ralink.h>
-#if defined(RTN14U) || defined(RTAC52U) || defined(RTAC51U) || defined(RTN54U) || defined(RTAC1200HP) || defined(RTN56UB1) || defined(RTN56UB2) || defined(RTAC54U)
+#if defined(RTN14U) || defined(RTAC52U) || defined(RTAC51U) || defined(RTWIFIMINI) || defined(RTN54U) || defined(RTAC1200HP) || defined(RTN56UB1) || defined(RTN56UB2) || defined(RTAC54U)
 #include <linux/if_packet.h>
 #include <linux/if_ether.h>
 #endif
@@ -1210,7 +1210,7 @@ int asus_ate_command(const char *command, const char *value, const char *value2)
 		return 0;
 	}
 #ifdef RTCONFIG_RALINK
-#if !defined(RTN14U) && !defined(RTAC52U) && !defined(RTAC51U) && !defined(RTN11P) && !defined(RTN300) && !defined(RTN54U) && !defined(RTAC1200HP) && !defined(RTN56UB1) && !defined(RTAC54U) && !defined(RTN56UB2)
+#if !defined(RTN14U) && !defined(RTAC52U) && !defined(RTAC51U) && !defined(RTWIFIMINI) && !defined(RTN11P) && !defined(RTN300) && !defined(RTN54U) && !defined(RTAC1200HP) && !defined(RTN56UB1) && !defined(RTAC54U) && !defined(RTN56UB2)
 	else if (!strcmp(command, "Ra_FWRITE")) {
 		return FWRITE(value, value2);
 	}

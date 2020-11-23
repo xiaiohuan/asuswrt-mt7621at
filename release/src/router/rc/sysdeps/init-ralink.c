@@ -50,7 +50,7 @@ void init_devs(void)
 {
 #define MKNOD(name,mode,dev)	if(mknod(name,mode,dev)) perror("## mknod " name)
 
-#if defined(LINUX30) && !defined(RTN14U) && !defined(RTAC52U) && !defined(RTAC51U) && !defined(RTN11P) && !defined(RTN300) && !defined(RTN54U) && !defined(RTAC1200HP) && !defined(RTN56UB1) && !defined(RTN56UB2) && !defined(RTAC54U)
+#if defined(LINUX30) && !defined(RTN14U) && !defined(RTAC52U) && !defined(RTAC51U) && !defined(RTWIFIMINI) && !defined(RTN11P) && !defined(RTN300) && !defined(RTN54U) && !defined(RTAC1200HP) && !defined(RTN56UB1) && !defined(RTN56UB2) && !defined(RTAC54U)
 	/* Below device node are used by proprietary driver.
 	 * Thus, we cannot use GPL-only symbol to create/remove device node dynamically.
 	 */
@@ -63,12 +63,12 @@ void init_devs(void)
 	MKNOD("/dev/nvram", S_IFCHR | 0666, makedev(228, 0));
 #else
 	MKNOD("/dev/video0", S_IFCHR | 0666, makedev(81, 0));
-#if !defined(RTN14U) && !defined(RTAC52U) && !defined(RTAC51U) && !defined(RTN11P) && !defined(RTN300) && !defined(RTN54U) && !defined(RTAC1200HP) && !defined(RTN56UB1) && !defined(RTN56UB2) && !defined(RTAC54U)
+#if !defined(RTN14U) && !defined(RTAC52U) && !defined(RTAC51U) && !defined(RTWIFIMINI) && !defined(RTN11P) && !defined(RTN300) && !defined(RTN54U) && !defined(RTAC1200HP) && !defined(RTN56UB1) && !defined(RTN56UB2) && !defined(RTAC54U)
 	MKNOD("/dev/rtkswitch", S_IFCHR | 0666, makedev(206, 0));
 #endif
 	MKNOD("/dev/spiS0", S_IFCHR | 0666, makedev(217, 0));
 	MKNOD("/dev/i2cM0", S_IFCHR | 0666, makedev(218, 0));
-#if defined(RTN14U) || defined(RTAC52U) || defined(RTAC51U) || defined(RTN11P) || defined(RTN300) || defined(RTN54U) || defined(RTAC1200HP) || defined(RTN56UB1) || defined(RTN56UB2) || defined(RTAC54U)
+#if defined(RTN14U) || defined(RTAC52U) || defined(RTAC51U) || defined(RTWIFIMINI) || defined(RTN11P) || defined(RTN300) || defined(RTN54U) || defined(RTAC1200HP) || defined(RTN56UB1) || defined(RTN56UB2) || defined(RTAC54U)
 #else
 	MKNOD("/dev/rdm0", S_IFCHR | 0666, makedev(254, 0));
 #endif
@@ -300,7 +300,7 @@ void config_switch()
 		dbG("software reset\n");
 		eval("rtkswitch", "27");	// software reset
 	}
-#if defined(RTN14U) || defined(RTAC52U) || defined(RTAC51U) || defined(RTN11P) || defined(RTN300) || defined(RTN54U) || defined(RTAC1200HP) || defined(RTN56UB1) || defined(RTAC54U) || defined(RTN56UB2)
+#if defined(RTN14U) || defined(RTAC52U) || defined(RTAC51U) || defined(RTWIFIMINI) || defined(RTN11P) || defined(RTN300) || defined(RTN54U) || defined(RTAC1200HP) || defined(RTN56UB1) || defined(RTAC54U) || defined(RTN56UB2)
 	system("rtkswitch 8 0"); //Barton add
 #endif
 
@@ -870,12 +870,19 @@ void init_syspara(void)
 #if defined(RTN14U) || defined(RTN11P) || defined(RTN300) // single band
 	nvram_set("et0macaddr", macaddr);
 	nvram_set("et1macaddr", macaddr);
+#elif defined(RTWIFIMINI)
 #else
 	//TODO: separate for different chipset solution
 	nvram_set("et0macaddr", macaddr);
 	nvram_set("et1macaddr", macaddr2);
 #endif
 
+#if defined(RTWIFIMINI)
+	FRead(dst, OFFSET_MAC_GMAC0, bytes);
+	ether_etoa(buffer, macaddr);
+	nvram_set("et0macaddr", macaddr);
+	nvram_set("et1macaddr", macaddr);
+#else
 	if (FRead(dst, OFFSET_MAC_GMAC0, bytes)<0)
 		dbg("READ MAC address GMAC0: Out of scope\n");
 	else
@@ -897,7 +904,7 @@ void init_syspara(void)
 				FWrite(ea, OFFSET_MAC_GMAC2, 6);
 		}
 	}
-
+#endif
 	{
 #ifdef RTCONFIG_ODMPID
 		char modelname[16];
@@ -1222,7 +1229,7 @@ void init_syspara(void)
 #endif
 
 #ifdef RA_SINGLE_SKU
-#if defined(RTAC52U) || defined(RTAC51U) || defined(RTN11P) || defined(RTN300) || defined(RTN54U) || defined(RTAC1200HP) || defined(RTN56UB1) || defined(RTAC54U) || defined(RTN56UB2)
+#if defined(RTAC52U) || defined(RTAC51U) || defined(RTWIFIMINI) || defined(RTN11P) || defined(RTN300) || defined(RTN54U) || defined(RTAC1200HP) || defined(RTN56UB1) || defined(RTAC54U) || defined(RTN56UB2)
 	gen_ra_sku(nvram_safe_get("reg_spec"));
 #endif	/* RTAC52U && RTAC51U && RTN54U && RTAC54U && RTAC1200HP && RTN56UB1 && RTN56UB1 && RTN11P && RTN300 */
 #endif	/* RA_SINGLE_SKU */
@@ -1239,7 +1246,7 @@ void generate_wl_para(int unit, int subunit)
 {
 }
 
-#if defined(RTAC52U) || defined(RTAC51U) || defined(RTN54U) || defined(RTAC1200HP) || defined(RTN56UB1) || defined(RTN56UB2)  || defined(RTAC54U)
+#if defined(RTAC52U) || defined(RTAC51U) || defined(RTWIFIMINI) || defined(RTN54U) || defined(RTAC1200HP) || defined(RTN56UB1) || defined(RTN56UB2)  || defined(RTAC54U)
 #define HW_NAT_WIFI_OFFLOADING		(0xFF00)
 #define HW_NAT_DEVNAME			"hwnat0"
 static void adjust_hwnat_wifi_offloading(void)
@@ -1296,7 +1303,7 @@ void reinit_hwnat(int unit)
 	if (nvram_get_int("qos_enable") == 1 && nvram_get_int("qos_type") != 1)
 		act = 0;
 
-#if defined(RTN14U) || defined(RTAC52U) || defined(RTAC51U) || defined(RTN11P) || defined(RTN300) || defined(RTN54U) || defined(RTAC1200HP) || defined(RTN56UB1) || defined(RTAC54U) || defined(RTN56UB2)
+#if defined(RTN14U) || defined(RTAC52U) || defined(RTAC51U) || defined(RTWIFIMINI) || defined(RTN11P) || defined(RTN300) || defined(RTN54U) || defined(RTAC1200HP) || defined(RTN56UB1) || defined(RTAC54U) || defined(RTN56UB2)
 	if (act > 0 && !nvram_match("switch_wantag", "none") && !nvram_match("switch_wantag", ""))
 		act = 0;
 #endif
@@ -1326,7 +1333,7 @@ void reinit_hwnat(int unit)
 #endif
 	}
 
-#if defined(RTN65U) || defined(RTN56U) || defined(RTN14U) || defined(RTAC52U) || defined(RTAC51U) || defined(RTN11P) || defined(RTN300) || defined(RTN54U) || defined(RTAC1200HP) || defined(RTN56UB1) || defined(RTAC54U) || defined(RTN56UB2)
+#if defined(RTN65U) || defined(RTN56U) || defined(RTN14U) || defined(RTAC52U) || defined(RTAC51U) || defined(RTWIFIMINI) || defined(RTN11P) || defined(RTN300) || defined(RTN54U) || defined(RTAC1200HP) || defined(RTN56UB1) || defined(RTAC54U) || defined(RTN56UB2)
 	if (act > 0) {
 #if defined(RTCONFIG_DUALWAN)
 		if (unit < 0 || unit > WAN_UNIT_SECOND || nvram_match("wans_mode", "lb")) {
@@ -1515,9 +1522,9 @@ set_wan_tag(char *interface) {
 #endif
 }
 
-#ifdef RA_SINGLE_SKU
 void reset_ra_sku(const char *location, const char *country, const char *reg_spec)
 {
+#ifdef RA_SINGLE_SKU
 	const char *try_list[] = { reg_spec, location, country, "CE", "FCC"};
 	int i;
 	for (i = 0; i < ARRAY_SIZE(try_list); i++) {
@@ -1532,6 +1539,6 @@ void reset_ra_sku(const char *location, const char *country, const char *reg_spe
 
 	cprintf("using %s SKU for %s\n", try_list[i], location);
 	gen_ra_sku(try_list[i]);
-}
 #endif	/* RA_SINGLE_SKU */
+}
 

@@ -274,7 +274,7 @@ obj-y += wireless_tools
 
 obj-y += $(if $(RTN65U),rt2880_app,ated flash)
 ifeq ($(RTN65U),)
-obj-y += $(if $(or $(RTN14U),$(RTAC52U),$(RTAC51U),$(RTN11P),$(RTN300),$(RTN54U)$(RTAC1200HP),$(RTN56UB1),$(RTN56UB2),$(RTAC54U)),reg,hw_nat)
+obj-y += $(if $(or $(RTN14U),$(RTAC52U),$(RTAC51U),$(RTWIFIMINI),$(RTN11P),$(RTN300),$(RTN54U)$(RTAC1200HP),$(RTN56UB1),$(RTN56UB2),$(RTAC54U)),reg,hw_nat)
 endif
 
 else ifeq ($(RTCONFIG_QCA),y)
@@ -1288,7 +1288,7 @@ image:
 	@rm -f $(PLATFORMDIR)/target.image
 ifneq (,$(filter y,$(RTCONFIG_RALINK) $(RTCONFIG_QCA)))
 	@$(MAKE) -C $(LINUXDIR)/scripts/squashfs $(MKSQUASHFS_TARGET)
-	@$(LINUXDIR)/scripts/squashfs/$(MKSQUASHFS) $(TARGETDIR) $(PLATFORMDIR)/target.image -all-root -noappend -nopad
+	@$(LINUXDIR)/scripts/squashfs/$(MKSQUASHFS) $(TARGETDIR) $(PLATFORMDIR)/target.image -all-root -noappend -nopad -b 262144
 else ifeq ($(RTCONFIG_BCMARM),y)
 	@$(SRCBASE)/ctools/mksquashfs $(TARGETDIR) $(PLATFORMDIR)/target.image -all-root -noappend
 else

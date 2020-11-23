@@ -2738,6 +2738,39 @@ int init_nvram(void)
 		break;
 #endif	/* RTAC51U */
 
+#if defined(RTWIFIMINI)
+	case MODEL_RTWIFIMINI:
+		nvram_set("boardflags", "0x100"); // although it is not used in ralink driver, set for vlan
+		nvram_set("vlan1hwname", "et0");  // vlan. used to get "%smacaddr" for compare and find parent interface.
+		nvram_set("vlan2hwname", "et0");  // vlan. used to get "%smacaddr" for compare and find parent interface.
+		nvram_set("lan_ifname", "br0");
+		set_basic_ifname_vars("vlan2", "vlan1", "ra0", "rai0", "usb", "vlan1", NULL, "vlan3", NULL, 0);
+
+		nvram_set_int("btn_rst_gpio",  6|GPIO_ACTIVE_LOW);
+		nvram_set_int("led_usb_gpio",  2|GPIO_ACTIVE_LOW);
+		nvram_set_int("led_pwr_gpio",  0|GPIO_ACTIVE_LOW);
+
+		eval("rtkswitch", "11");
+
+		nvram_set("ehci_ports", "1-1");
+		nvram_set("ohci_ports", "2-1");
+		nvram_set("ct_max", "300000"); // force
+
+		add_rc_support("mssid");
+		add_rc_support("2.4G 5G noupdate usbX1");
+		add_rc_support("rawifi");
+		add_rc_support("switchctrl");
+		add_rc_support("manual_stb");
+		add_rc_support("11AC");
+		add_rc_support("pwrctrl");
+		// the following values is model dep. so move it from default.c to here
+		nvram_set("wl0_HT_TxStream", "2");
+		nvram_set("wl0_HT_RxStream", "2");
+		nvram_set("wl1_HT_TxStream", "2");
+		nvram_set("wl1_HT_RxStream", "2");
+		break;
+#endif	/* RTWIFIMINI */
+
 #if defined(RTN56UB1) || defined(RTN56UB2)
 	case MODEL_RTN56UB1:
 	case MODEL_RTN56UB2:
@@ -6723,7 +6756,7 @@ static void sysinit(void)
 	model = get_model();
 	// avoid the process like fsck to devour the memory.
 	// ex: when DUT ran fscking, restarting wireless would let DUT crash.
-	if ((model == MODEL_RTN56U) || (model == MODEL_DSLN55U) || (model == MODEL_RTAC52U) || (model == MODEL_RTAC51U)
+	if ((model == MODEL_RTN56U) || (model == MODEL_DSLN55U) || (model == MODEL_RTAC52U) || (model == MODEL_RTAC51U) || (model == MODEL_RTWIFIMINI)
 	      ||(model == MODEL_RTN14U) ||(model == MODEL_RTN54U) ||(model == MODEL_RTAC54U) ||(model == MODEL_RTAC1200HP) || (model == MODEL_RTN56UB1) || (model == MODEL_RTN56UB2))
 		{
 			f_write_string("/proc/sys/vm/min_free_kbytes", "4096", 0, 0);
@@ -7433,7 +7466,7 @@ int reboothalt_main(int argc, char *argv[])
 	_dprintf(reboot ? "Rebooting..." : "Shutting down...");
 	kill(1, reboot ? SIGTERM : SIGQUIT);
 
-#if defined(RTN14U) || defined(RTN65U) || defined(RTAC52U) || defined(RTAC51U) || defined(RTN11P) || defined(RTN300) || defined(RTN54U) || defined(RTCONFIG_QCA) || defined(RTAC1200HP) || defined(RTN56UB1) || defined(RTAC54U) || defined(RTN56UB2)
+#if defined(RTN14U) || defined(RTN65U) || defined(RTAC52U) || defined(RTAC51U) || defined(RTWIFIMINI) || defined(RTN11P) || defined(RTN300) || defined(RTN54U) || defined(RTCONFIG_QCA) || defined(RTAC1200HP) || defined(RTN56UB1) || defined(RTAC54U) || defined(RTN56UB2)
 	def_reset_wait = 50;
 #endif
 
