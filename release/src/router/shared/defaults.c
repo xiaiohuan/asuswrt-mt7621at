@@ -290,7 +290,7 @@ struct nvram_tuple router_defaults[] = {
 #else
 	{ "wl_bcn_rotate", "1", 0 },		/* Beacon rotation */
 #endif
-	{ "wl_plcphdr", "long", 0 },		/* 802.11b PLCP preamble type */
+	{ "wl_plcphdr", "short", 0 },		/* 802.11b PLCP preamble type */
 #ifdef RTCONFIG_RALINK
 	{ "wl_nmode_protection", "auto", 0 },	/* 802.11n protection */
 #elif defined(RTCONFIG_QCA) || defined(RTCONFIG_BCM_7114)
@@ -323,9 +323,9 @@ struct nvram_tuple router_defaults[] = {
 #ifdef RTCONFIG_WL_AUTO_CHANNEL
 	{"AUTO_CHANNEL", "1" },			/*0: real channel; 1: Auto; for RT-N12HP & RT-N14UHP*/
 #endif
-#ifdef RTCONFIG_TCODE
-	{"location_code", "" },			/*0: real channel; 1: Auto; for RT-N12HP & RT-N14UHP*/
-#endif
+//#ifdef RTCONFIG_TCODE
+	{"location_code", "EU" },			/*0: real channel; 1: Auto; for RT-N12HP & RT-N14UHP*/
+//#endif
 #ifdef RTCONFIG_RALINK
 	{ "wl_nband", "2", 0 },			/* N-BAND */
 	{ "wl0_nband", "2", 0 },		/* 2.4 GHz */
@@ -690,8 +690,8 @@ struct nvram_tuple router_defaults[] = {
 
 // WPS
 //	#if defined (W7_LOGO) || defined (WIFI_LOGO)
-	{ "wps_enable", "1" },
-	{ "wps_enable_x", "1" },
+	{ "wps_enable", "0" },
+	{ "wps_enable_x", "0" },
 //	#else
 //	{ "wps_enable_x", "0" },					// win7 logo
 //	#endif
@@ -2379,7 +2379,7 @@ struct nvram_tuple router_defaults[] = {
 
 	{ "web_redirect", 	"1"		},	// Only NOLINK is redirected in default, it is overwrited in init_nvram
 	{ "disiosdet",		"1"		},
-	{ "nat_redirect_enable",	"1" },
+	{ "nat_redirect_enable",	"0" },
 
 #ifdef RTCONFIG_FANCTRL
 	{ "fanctrl_dutycycle",		"0" },

@@ -1167,6 +1167,7 @@ void init_syspara(void)
 	_dprintf("bootloader version: %s\n", nvram_safe_get("blver"));
 	_dprintf("firmware version: %s\n", nvram_safe_get("firmver"));
 
+#if 0
 	dst = txbf_para;
 	int count_0xff = 0;
 	if (FRead(dst, OFFSET_TXBF_PARA, 33) < 0)
@@ -1195,6 +1196,7 @@ void init_syspara(void)
 		nvram_set("wl1_txbf_en", "0");
 	else
 		nvram_set("wl1_txbf_en", "1");
+#endif
 
 #if defined (RTCONFIG_WLMODULE_RT3352_INIC_MII)
 #define EEPROM_INIC_SIZE (512)

@@ -63,19 +63,7 @@ endif
 
 export BRANCH := $(shell git branch)
 
-ifeq ($(BRANCH),) 
-include ./router/extendno.conf
-else
-ifeq ($(EXTENDTYPE),)
-export EXTENDNO := $(shell git log --pretty=oneline asuswrt_$(KERNEL_VER).$(FS_VER).$(SERIALNO)..HEAD | wc -l)-g$(shell git log --pretty=format:'%h' -n 1|sed -e "s,\([0-9a-z]\{7\}\)[0-9a-z]*,\1,")
-else
-export EXTENDNO := $(shell git log --pretty=oneline asuswrt_$(KERNEL_VER).$(FS_VER).$(SERIALNO)..HEAD | wc -l)-g$(shell git log --pretty=format:'%h' -n 1|sed -e "s,\([0-9a-z]\{7\}\)[0-9a-z]*,\1,")-$(EXTENDTYPE)
-endif
-endif
-
-ifeq ($(EXTENDNO),)
-export EXTENDNO := 0-g$(shell git log --pretty=format:'%h' -n 1)
-endif
+export EXTENDNO := $(shell cat ./router/extendno.conf | sed 's/EXTENDNO=//g')
 
 export SWPJNAME := $(shell git branch | grep "*" | grep "swpj-" | sed 's/.*swpj-//g')
 

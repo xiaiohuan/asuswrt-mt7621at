@@ -7104,7 +7104,7 @@ int init_main(int argc, char *argv[])
 
 		case SIGUSR2:		/* START */
 			start_logger();
-			if (nvram_match("Ate_power_on_off_enable", "1")) {
+			if (0 /*nvram_match("Ate_power_on_off_enable", "1")*/) {
 				rc_check = nvram_get_int("Ate_rc_check");
 				boot_check = nvram_get_int("Ate_boot_check");
 				boot_fail = nvram_get_int("Ate_boot_fail");
@@ -7216,7 +7216,7 @@ dbg("boot/continue fail= %d/%d\n", nvram_get_int("Ate_boot_fail"),nvram_get_int(
 			}
 #endif
 #ifdef RTCONFIG_RALINK
-			if(nvram_match("Ate_wan_to_lan", "1"))
+			if(0 /*nvram_match("Ate_wan_to_lan", "1")*/)
 			{
 				printf("\n\n## ATE mode:set WAN to LAN... ##\n\n");
 				set_wantolan();
@@ -7227,9 +7227,9 @@ dbg("boot/continue fail= %d/%d\n", nvram_get_int("Ate_boot_fail"),nvram_get_int(
 			}
 #endif
 
-			if (nvram_match("Ate_power_on_off_enable", "3")|| //Show alert light
+			if (0 /*nvram_match("Ate_power_on_off_enable", "3")|| //Show alert light
 				nvram_match("Ate_power_on_off_enable", "4")||
-				nvram_match("Ate_power_on_off_enable", "5")  ) {
+				nvram_match("Ate_power_on_off_enable", "5") */ ) {
 				start_telnetd();
 				while(1) {
 					led_control(LED_POWER, LED_OFF);
@@ -7248,8 +7248,8 @@ dbg("boot/continue fail= %d/%d\n", nvram_get_int("Ate_boot_fail"),nvram_get_int(
 #endif
 
 			//For 66U normal boot & check device
-			if (((get_model()==MODEL_RTN66U) || (get_model()==MODEL_RTAC66U))
-			&& nvram_match("Ate_power_on_off_enable", "0")) {
+			if (0 /*((get_model()==MODEL_RTN66U) || (get_model()==MODEL_RTAC66U))
+			&& nvram_match("Ate_power_on_off_enable", "0")*/) {
 			    ate_dev_status();
 			    if (nvram_get_int("dev_fail_reboot")!=0) {
 				if (strchr(nvram_get("Ate_dev_status"), 'X')) {
@@ -7276,7 +7276,7 @@ dbg("boot/continue fail= %d/%d\n", nvram_get_int("Ate_boot_fail"),nvram_get_int(
 			    }
 			}
 
-			if (nvram_match("Ate_power_on_off_enable", "1")) {
+			if (0 /*nvram_match("Ate_power_on_off_enable", "1")*/) {
 				dev_check = nvram_get_int("Ate_dev_check");
 				dev_fail = nvram_get_int("Ate_dev_fail");
 				ate_dev_status();
@@ -7362,7 +7362,7 @@ dbg("boot/continue fail= %d/%d\n", nvram_get_int("Ate_boot_fail"),nvram_get_int(
 					eval("arpstorm");
 				}
 			}
-			else {
+			else if (0) {
 				ate_run_arpstrom();
 			}
 
