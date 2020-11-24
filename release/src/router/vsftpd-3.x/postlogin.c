@@ -420,7 +420,7 @@ process_post_login(struct vsf_session* p_sess)
 				}
 
 #endif
-				user_right = get_permission(str_getbuf(&p_sess->user_str), mount_path, share_name, "ftp", 0);
+				user_right = get_permission(str_getbuf(&p_sess->user_str), mount_path, share_name, "ftp");
 #ifdef UNION_PERMISSION
 				if(user_right < 1 && group_right < 1)
 #else
@@ -464,7 +464,7 @@ process_post_login(struct vsf_session* p_sess)
 				}
 
 #endif
-				user_right = get_permission(str_getbuf(&p_sess->user_str), mount_path, share_name, "ftp", 0);
+				user_right = get_permission(str_getbuf(&p_sess->user_str), mount_path, share_name, "ftp");
 #ifdef UNION_PERMISSION
 				if((user_right < 1 || user_right == 2) && (group_right < 1 || group_right == 2))
 #else
@@ -509,7 +509,7 @@ process_post_login(struct vsf_session* p_sess)
 				}
 
 #endif
-				user_right = get_permission(str_getbuf(&p_sess->user_str), mount_path, share_name, "ftp", 0);
+				user_right = get_permission(str_getbuf(&p_sess->user_str), mount_path, share_name, "ftp");
 #ifdef UNION_PERMISSION
 				if(user_right < 2 && group_right < 2)
 #else
@@ -551,7 +551,7 @@ process_post_login(struct vsf_session* p_sess)
 				}
 
 #endif
-				user_right = get_permission(str_getbuf(&p_sess->user_str), mount_path, share_name, "ftp", 0);
+				user_right = get_permission(str_getbuf(&p_sess->user_str), mount_path, share_name, "ftp");
 #ifdef UNION_PERMISSION
 				if(user_right < 3 && group_right < 3)
 #else

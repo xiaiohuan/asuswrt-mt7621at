@@ -1149,7 +1149,7 @@ vsf_sysutil_next_dirent(const char* session_user, const char *base_dir, struct v
 			PMS_FreeAccInfo(&account_list, &group_list);
 
 #endif
-			user_right = get_permission(session_user, mount_path, share_name, "ftp", 0);
+			user_right = get_permission(session_user, mount_path, share_name, "ftp");
 #ifdef UNION_PERMISSION
 			if((user_right < 1 || user_right == 2) && (group_right < 1 || group_right == 2))
 #else
