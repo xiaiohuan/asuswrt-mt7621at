@@ -66,8 +66,8 @@ enum {
 #elif defined(RTWIFIMINI)
 enum {
 	WAN_PORT=4,
-	LAN1_PORT=0,
-	LAN2_PORT=1,
+	LAN1_PORT=1,
+	LAN2_PORT=0,
 	LAN3_PORT=2,
 	LAN4_PORT=3,
 	P5_PORT=5,

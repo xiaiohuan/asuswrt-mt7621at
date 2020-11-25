@@ -207,6 +207,7 @@ int is_switch_175c = 1;
 #endif
 
 static char *port_mapping[6] = {
+#if 0
 #if defined(CONFIG_MT7620_ASIC) 
 #if defined(CONFIG_SECOND_IF_MT7610E)
 #if defined(CONFIG_RT2880_DRAM_128M)
@@ -219,8 +220,6 @@ static char *port_mapping[6] = {
 #elif defined(CONFIG_SECOND_IF_MT7612E)
 #if defined(RTAC1200HP)
 	"1", "2", "3", "4", "x", "" /* RT-AC1200HP, P0P1P2P3P4P5 map to LAN/WAP port*/ 
-#elif defined(RTWIFIMINI)
-	"1", "2", "3", "4", "", "x"
 #else	
 	"", "1", "2", "3", "4", "x" /* RT-N54U & RT-AC54U*/ 
 #endif	
@@ -239,6 +238,9 @@ static char *port_mapping[6] = {
 #else
 	"4", "3", "2", "1", "", "x"
 #endif
+#endif
+#else
+	"2", "1", "x", "x", "", "x"
 #endif
 };
 

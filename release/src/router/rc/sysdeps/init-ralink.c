@@ -710,7 +710,7 @@ static void chk_valid_country_code(char *country_code)
 	}
 	else
 	{
-		strcpy(country_code, "DB");
+		strcpy(country_code, "GB");
 	}
 }
 #endif
@@ -989,7 +989,7 @@ void init_syspara(void)
 	{
 		_dprintf("Read REG2G_EEPROM_ADDR fail or invalid value\n");
 		nvram_set("wl_country_code", "");
-		nvram_set("wl0_country_code", "DB");
+		nvram_set("wl0_country_code", "GB");
 		nvram_set("wl_reg_2g", "2G_CH14");
 	}
 	else
@@ -1005,9 +1005,9 @@ void init_syspara(void)
 		else if (strcmp(dst, "2G_CH13") == 0)
 			nvram_set("wl0_country_code", "GB");
 		else if (strcmp(dst, "2G_CH14") == 0)
-			nvram_set("wl0_country_code", "DB");
+			nvram_set("wl0_country_code", "GB");
 		else
-			nvram_set("wl0_country_code", "DB");
+			nvram_set("wl0_country_code", "GB");
 	}
 #ifdef RTCONFIG_HAS_5G
 #ifdef RTAC51U	/* FIX EU2CN */
@@ -1020,7 +1020,7 @@ void init_syspara(void)
 	{
 		_dprintf("Read REG5G_EEPROM_ADDR fail or invalid value\n");
 		nvram_set("wl_country_code", "");
-		nvram_set("wl1_country_code", "DB");
+		nvram_set("wl1_country_code", "US");
 		nvram_set("wl_reg_5g", "5G_ALL");
 	}
 	else
@@ -1050,7 +1050,7 @@ void init_syspara(void)
 		else if (strcmp(dst, "5G_BAND124") == 0)
 			nvram_set("wl1_country_code", "IN");
 		else
-			nvram_set("wl1_country_code", "DB");
+			nvram_set("wl1_country_code", "US");
 	}
 #endif	/* RTCONFIG_HAS_5G */
 #endif	/* ! RTCONFIG_NEW_REGULATION_DOMAIN */

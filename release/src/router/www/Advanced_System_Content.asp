@@ -148,44 +148,6 @@ function initial(){
 		hide_https_wanport(document.form.http_enable.value);
 	}	
 	
-	if(wifi_tog_btn_support || wifi_hw_sw_support || sw_mode == 2 || sw_mode == 4){		// wifi_tog_btn && wifi_hw_sw && hide WPS button behavior under repeater mode
-			if(cfg_wps_btn_support){
-				document.getElementById('turn_WPS').style.display = "";
-				document.form.btn_ez_radiotoggle[1].disabled = true;
-				document.getElementById('turn_WiFi').style.display = "none";
-				document.getElementById('turn_WiFi_str').style.display = "none";
-				document.getElementById('turn_LED').style.display = "";
-				if(document.form.btn_ez_radiotoggle[2].checked == false)
-					document.form.btn_ez_radiotoggle[0].checked = true;
-			}
-			else{
-				document.form.btn_ez_radiotoggle[0].disabled = true;
-				document.form.btn_ez_radiotoggle[1].disabled = true;
-				document.form.btn_ez_radiotoggle[2].disabled = true;
-				document.getElementById('btn_ez_radiotoggle_tr').style.display = "none";
-			}
-	}
-	else{
-			
-			document.getElementById('btn_ez_radiotoggle_tr').style.display = "";
-			if(cfg_wps_btn_support){
-				document.getElementById('turn_WPS').style.display = "";
-				document.getElementById('turn_WiFi').style.display = "";
-				document.getElementById('turn_LED').style.display = "";
-				if(document.form.btn_ez_radiotoggle[1].checked == false && document.form.btn_ez_radiotoggle[2].checked == false)
-					document.form.btn_ez_radiotoggle[0].checked = true;
-			}
-			else{
-				document.getElementById('turn_WPS').style.display = "";
-				document.getElementById('turn_WiFi').style.display = "";
-				document.getElementById('turn_LED').disabled = true;
-				document.getElementById('turn_LED').style.display = "none";
-				document.getElementById('turn_LED_str').style.display = "none";
-				if(document.form.btn_ez_radiotoggle[1].checked == false)
-					document.form.btn_ez_radiotoggle[0].checked = true;		
-			}
-	}
-	
 	if(sw_mode != 1){
 		document.getElementById('misc_http_x_tr').style.display ="none";
 		hideport(0);
@@ -367,19 +329,6 @@ function applyRule(){
 						document.form.flag.value = "http://" + location.hostname;
 				}
 			}   
-		}
-		
-		if(document.form.btn_ez_radiotoggle[1].disabled == false && document.form.btn_ez_radiotoggle[1].checked == true){
-				document.form.btn_ez_radiotoggle.value=1;
-				document.form.btn_ez_mode.value=0;				
-		}
-		else if(document.form.btn_ez_radiotoggle[2].disabled == false && document.form.btn_ez_radiotoggle[2].checked == true){
-				document.form.btn_ez_radiotoggle.value=0;
-				document.form.btn_ez_mode.value=1;				
-		}
-		else{		
-				document.form.btn_ez_radiotoggle.value=0;
-				document.form.btn_ez_mode.value=0;				
 		}
 		
 		if(reboot_schedule_support){
@@ -1457,14 +1406,6 @@ function pullPingTargetList(obj){
 					  <td colspan="2"><#t2Misc#></td>
 					</tr>
 				</thead>
-				<tr id="btn_ez_radiotoggle_tr">
-					<th><#WPS_btn_behavior#></th>
-					<td>
-						<input type="radio" name="btn_ez_radiotoggle" id="turn_WPS" style="display:none;" value="0"><label for="turn_WPS"><#WPS_btn_actWPS#></label>
-						<input type="radio" name="btn_ez_radiotoggle" id="turn_WiFi" style="display:none;" value="1" <% nvram_match_x("", "btn_ez_radiotoggle", "1", "checked"); %>><label for="turn_WiFi" id="turn_WiFi_str"><#WPS_btn_toggle#></label>
-						<input type="radio" name="btn_ez_radiotoggle" id="turn_LED" style="display:none;" value="0" <% nvram_match_x("", "btn_ez_mode", "1", "checked"); %>><label for="turn_LED" id="turn_LED_str">Turn LED On/Off</label>
-					</td>
-				</tr>				
 				</tr>
 				<tr id="reboot_schedule_enable_tr">
 					<th><#Enable_reboot_scheduler#></th>

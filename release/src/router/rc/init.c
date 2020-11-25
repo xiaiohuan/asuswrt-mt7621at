@@ -2746,9 +2746,13 @@ int init_nvram(void)
 		nvram_set("lan_ifname", "br0");
 		set_basic_ifname_vars("vlan2", "vlan1", "ra0", "rai0", "usb", "vlan1", NULL, "vlan3", NULL, 0);
 
-		nvram_set_int("btn_rst_gpio",  6|GPIO_ACTIVE_LOW);
-		nvram_set_int("led_usb_gpio",  2|GPIO_ACTIVE_LOW);
-		nvram_set_int("led_pwr_gpio",  0|GPIO_ACTIVE_LOW);
+		nvram_set_int("btn_rst_gpio", 30);
+		nvram_set_int("led_usb_gpio", 26|GPIO_ACTIVE_LOW);
+		nvram_set_int("led_pwr_gpio", 24|GPIO_ACTIVE_LOW);
+		nvram_set_int("led_wps_gpio", 33|GPIO_ACTIVE_LOW);
+#ifdef RTCONFIG_USBRESET
+		nvram_set_int("pwr_usb_gpio", 65);
+#endif
 
 		eval("rtkswitch", "11");
 
@@ -2759,7 +2763,6 @@ int init_nvram(void)
 		add_rc_support("mssid");
 		add_rc_support("2.4G 5G noupdate usbX1");
 		add_rc_support("rawifi");
-		add_rc_support("switchctrl");
 		add_rc_support("manual_stb");
 		add_rc_support("11AC");
 		add_rc_support("pwrctrl");
@@ -6801,7 +6804,6 @@ static void sysinit(void)
 #endif
 
 	force_free_caches();
-
 	// autoreboot after kernel panic
 	f_write_string("/proc/sys/kernel/panic", "3", 0, 0);
 	f_write_string("/proc/sys/kernel/panic_on_oops", "3", 0, 0);
@@ -6885,7 +6887,6 @@ static void sysinit(void)
 	void handle_location_code_for_wl(void);
 	handle_location_code_for_wl();
 #endif	/* CONFIG_BCMWL5 */
-
 	init_gpio();   // for system dependent part
 #ifdef RTCONFIG_SWMODE_SWITCH
 	init_swmode(); // need to check after gpio initized
@@ -6893,9 +6894,7 @@ static void sysinit(void)
 #ifdef RTCONFIG_BCMARM
 	init_others();
 #endif
-
 	init_switch(); // for system dependent part
-
 #if defined(RTCONFIG_SOC_IPQ40XX)
 #if defined(RTCONFIG_BLINK_LED)
 	modprobe("bled");
@@ -6909,7 +6908,6 @@ static void sysinit(void)
 	start_jffs2();
 #endif
 #endif	
-
 
 	if(!nvram_match("nowl", "1")) init_wl(); // for system dependent part
 	klogctl(8, NULL, nvram_get_int("console_loglevel"));
@@ -7004,7 +7002,6 @@ int init_main(int argc, char *argv[])
 #endif
 	{
 		sysinit();
-		
 		config_format_compatibility_handler();
 		
 		sigemptyset(&sigset);

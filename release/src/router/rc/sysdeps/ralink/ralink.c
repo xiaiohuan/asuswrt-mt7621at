@@ -269,7 +269,7 @@ int getCountryRegion2G(const char *countryCode)
 {
 	if (countryCode == NULL)
 	{
-		return 5;	// 1-14
+		return 1;	// 1-14
 	}
 	else if((strcasecmp(countryCode, "CA") == 0) || (strcasecmp(countryCode, "CO") == 0) ||
 		(strcasecmp(countryCode, "DO") == 0) || (strcasecmp(countryCode, "GT") == 0) ||
@@ -284,7 +284,7 @@ int getCountryRegion2G(const char *countryCode)
 	}
 	else if (strcasecmp(countryCode, "DB") == 0  || strcasecmp(countryCode, "") == 0)
 	{
-		return 5;	// 1-14
+		return 1;	// 1-14
 	}
 
 	return 1;	// 1-13
